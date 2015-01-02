@@ -37,6 +37,8 @@ public class StorageConstants {
   @Deprecated
   public static final String CSVFILE_NULL = "csvfile.null";
   @Deprecated
+  public static final String CSVFILE_HEADERLINE_COUNT = "csvfile.headerLineCount";
+  @Deprecated
   public static final String CSVFILE_SERDE = "csvfile.serde";
 
   public static final String TEXT_DELIMITER = "text.delimiter";
@@ -55,6 +57,8 @@ public class StorageConstants {
    **/
   public static final String TEXT_ERROR_TOLERANCE_MAXNUM = "text.error-tolerance.max-num";
   public static final String DEFAULT_TEXT_ERROR_TOLERANCE_MAXNUM = "0";
+
+  public static final String DEFAULT_CSVFILE_HEADERLINE_COUNT = "0";
 
   // Sequence file properties -------------------------------------------------
   @Deprecated
