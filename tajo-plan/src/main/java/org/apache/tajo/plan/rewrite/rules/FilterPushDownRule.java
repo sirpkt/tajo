@@ -210,6 +210,21 @@ public class FilterPushDownRule extends BasicLogicalPlanVisitor<FilterPushDownCo
       }
     }
 
+    /* non-equi filter should not be push down as a join qualifier until theta join is implemented
+     * TODO this code SHOULD be restored after TAJO-742 is resolved. */
+    List<EvalNode> thetaJoinFilter = new ArrayList<EvalNode>();
+    for (EvalNode eachEval: context.pushingDownFilters) {
+      if (eachEval.getType() != EvalType.EQUAL) {
+        if (EvalTreeUtil.isJoinQual(block,
+            joinNode.getLeftChild().getOutSchema(),
+            joinNode.getRightChild().getOutSchema(),
+            eachEval, true)) {
+          thetaJoinFilter.add(eachEval);
+        }
+      }
+    }
+    context.pushingDownFilters.removeAll(thetaJoinFilter);
+
     // get evals from ON clause
     List<EvalNode> onConditions = new ArrayList<EvalNode>();
     if (joinNode.hasJoinQual()) {
@@ -344,6 +359,7 @@ public class FilterPushDownRule extends BasicLogicalPlanVisitor<FilterPushDownCo
     }
 
     context.pushingDownFilters.addAll(outerJoinFilterEvalsExcludePredication);
+    context.pushingDownFilters.addAll(thetaJoinFilter);
     return joinNode;
   }
 
@@ -804,13 +820,13 @@ public class FilterPushDownRule extends BasicLogicalPlanVisitor<FilterPushDownCo
 
     List<EvalNode> notMatched = new ArrayList<EvalNode>();
     // transform
-    Map<EvalNode, EvalNode> tranformed =
+    Map<EvalNode, EvalNode> transformed =
         findCanPushdownAndTransform(context, block, groupbyNode,groupbyNode.getChild(), notMatched, null, false, 0);
 
-    context.setFiltersTobePushed(tranformed.keySet());
+    context.setFiltersTobePushed(transformed.keySet());
     LogicalNode current = super.visitGroupBy(context, plan, block, groupbyNode, stack);
 
-    context.setToOrigin(tranformed);
+    context.setToOrigin(transformed);
     context.addFiltersTobePushed(notMatched);
 
     return current;
