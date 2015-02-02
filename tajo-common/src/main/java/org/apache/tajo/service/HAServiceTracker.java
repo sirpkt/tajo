@@ -16,35 +16,33 @@
  * limitations under the License.
  */
 
-package org.apache.tajo.engine.planner.physical;
+package org.apache.tajo.service;
 
-import org.apache.tajo.plan.expr.EvalNode;
-import org.apache.tajo.plan.logical.HavingNode;
-import org.apache.tajo.storage.Tuple;
-import org.apache.tajo.worker.TaskAttemptContext;
+import org.apache.hadoop.net.NetUtils;
 
-import java.io.IOException;
+import javax.net.SocketFactory;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 
-public class HavingExec extends UnaryPhysicalExec  {
-  private final EvalNode qual;
+public abstract class HAServiceTracker implements ServiceTracker {
 
-  public HavingExec(TaskAttemptContext context,
-                    HavingNode plan,
-                    PhysicalExec child) {
-    super(context, plan.getInSchema(), plan.getOutSchema(), child);
+  static SocketFactory socketFactory = SocketFactory.getDefault();
 
-    this.qual = plan.getQual();
+  public boolean isHighAvailable() {
+    return true;
   }
 
-  @Override
-  public Tuple next() throws IOException {
-    Tuple tuple;
-    while (!context.isStopped() && (tuple = child.next()) != null) {
-      if (qual.eval(inSchema, tuple).isTrue()) {
-        return tuple;
-      }
-    }
+  public static boolean checkConnection(InetSocketAddress address) {
+    boolean isAlive = true;
 
-    return null;
+    try {
+      int connectionTimeout = 10;
+
+      Socket socket = socketFactory.createSocket();
+      NetUtils.connect(socket, address, connectionTimeout);
+    } catch (Exception e) {
+      isAlive = false;
+    }
+    return isAlive;
   }
 }

@@ -16,35 +16,26 @@
  * limitations under the License.
  */
 
-package org.apache.tajo.engine.planner.physical;
+package org.apache.tajo.service;
 
-import org.apache.tajo.plan.expr.EvalNode;
-import org.apache.tajo.plan.logical.HavingNode;
-import org.apache.tajo.storage.Tuple;
-import org.apache.tajo.worker.TaskAttemptContext;
+import org.apache.tajo.conf.TajoConf;
+import org.apache.tajo.util.ReflectionUtil;
 
-import java.io.IOException;
+public class ServiceTrackerFactory {
 
-public class HavingExec extends UnaryPhysicalExec  {
-  private final EvalNode qual;
+  public static ServiceTracker get(TajoConf conf) {
+    Class<ServiceTracker> trackerClass;
 
-  public HavingExec(TaskAttemptContext context,
-                    HavingNode plan,
-                    PhysicalExec child) {
-    super(context, plan.getInSchema(), plan.getOutSchema(), child);
-
-    this.qual = plan.getQual();
-  }
-
-  @Override
-  public Tuple next() throws IOException {
-    Tuple tuple;
-    while (!context.isStopped() && (tuple = child.next()) != null) {
-      if (qual.eval(inSchema, tuple).isTrue()) {
-        return tuple;
+    try {
+      if (conf.getBoolVar(TajoConf.ConfVars.TAJO_MASTER_HA_ENABLE)) {
+        trackerClass = (Class<ServiceTracker>) conf.getClassVar(TajoConf.ConfVars.HA_SERVICE_TRACKER_CLASS);
+      } else {
+        trackerClass = (Class<ServiceTracker>) conf.getClassVar(TajoConf.ConfVars.DEFAULT_SERVICE_TRACKER_CLASS);
       }
-    }
+      return ReflectionUtil.newInstance(trackerClass, conf);
 
-    return null;
+    } catch (Throwable t) {
+      throw new RuntimeException(t);
+    }
   }
 }
