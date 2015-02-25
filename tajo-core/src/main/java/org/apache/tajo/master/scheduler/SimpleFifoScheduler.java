@@ -79,15 +79,16 @@ public class SimpleFifoScheduler implements Scheduler {
     return null;
   }
 
-  @Override
   public List<QueryInProgress> getRunningQueries() {
     return new ArrayList<QueryInProgress>(manager.getRunningQueries());
   }
 
+  @Override
   public void start() {
     queryProcessor.start();
   }
 
+  @Override
   public void stop() {
     if (stopped.getAndSet(true)) {
       return;
@@ -144,5 +145,46 @@ public class SimpleFifoScheduler implements Scheduler {
         }
       }
     }
+  }
+
+  @Override
+  public String getStatusHtml() {
+    StringBuilder sb = new StringBuilder();
+
+    Collection<QueryInProgress> runningQueries = manager.getRunningQueries();
+
+    String runningQueryList = "";
+    String prefix = "";
+
+    if (runningQueries != null) {
+      for (QueryInProgress eachQuery: runningQueries) {
+        runningQueryList += prefix + eachQuery.getQueryId();
+        prefix = "<br/>";
+      }
+    }
+
+    String waitingQueryList = "";
+    prefix = "";
+    synchronized (pool) {
+      if (runningQueries != null) {
+        for (QuerySchedulingInfo eachQuery : pool) {
+          waitingQueryList += prefix + eachQuery.getQueryId() +
+              "<input id=\"btnSubmit\" type=\"submit\" value=\"Remove\" onClick=\"javascript:killQuery('" + eachQuery.getQueryId() + "');\">";
+          prefix = "<br/>";
+        }
+      }
+    }
+
+    sb.append("<table border=\"1\" width=\"100%\" class=\"border_table\">");
+    sb.append("<tr><th width='200'>Queue</th><th width='100'>Min Slot</th><th width='100'>Max Slot</th><th>Running Query</th><th>Waiting Queries</th></tr>");
+    sb.append("<tr>");
+    sb.append("<td>").append(QueueProperty.DEFAULT_QUEUE_NAME).append("</td>");
+    sb.append("<td>-</td>");
+    sb.append("<td>-</td>");
+    sb.append("<td>").append(runningQueryList).append("</td>");
+    sb.append("<td>").append(waitingQueryList).append("</td>");
+    sb.append("</tr>");
+    sb.append("</table>");
+    return sb.toString();
   }
 }

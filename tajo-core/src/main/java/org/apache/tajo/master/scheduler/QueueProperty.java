@@ -18,28 +18,30 @@
 
 package org.apache.tajo.master.scheduler;
 
-import org.apache.tajo.QueryId;
-import org.apache.tajo.master.QueryInProgress;
+public class QueueProperty {
+  public static final String QUERY_QUEUE_KEY = "tajo.job.assigned.queue";
+  public static final String DEFAULT_QUEUE_NAME = "default";
 
-import java.util.List;
+  private String queueName;
+  private int minCapacity;
+  private int maxCapacity;
 
-public interface Scheduler {
-
-  public void start();
-
-  public void stop();
-
-  public Mode getMode();
-
-  public String getName();
-
-  public boolean addQuery(QueryInProgress resource);
-
-  public boolean removeQuery(QueryId queryId);
-
-  public String getStatusHtml();
-
-  public enum Mode {
-    FIFO, FAIR
+  public QueueProperty(String queueName, int minCapacity, int maxCapacity) {
+    this.queueName = queueName;
+    this.minCapacity = minCapacity;
+    this.maxCapacity = maxCapacity;
   }
+
+  public String getQueueName() {
+    return queueName;
+  }
+
+  public int getMinCapacity() {
+    return minCapacity;
+  }
+
+  public int getMaxCapacity() {
+    return maxCapacity;
+  }
+
 }

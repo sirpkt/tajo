@@ -20,11 +20,16 @@ package org.apache.tajo.master.scheduler;
 
 import com.google.common.base.Objects;
 import org.apache.tajo.QueryId;
+import org.apache.tajo.engine.query.QueryContext;
+
+import java.util.Set;
 
 public class QuerySchedulingInfo {
   private QueryId queryId;
   private Integer priority;
   private Long startTime;
+  private String assignedQueueName;
+  private Set<String> candidateQueueNames;
 
   public QuerySchedulingInfo(QueryId queryId, Integer priority, Long startTime) {
     this.queryId = queryId;
@@ -48,8 +53,34 @@ public class QuerySchedulingInfo {
     return queryId.getId();
   }
 
+  public String getAssignedQueueName() {
+    return assignedQueueName;
+  }
+
+  public void setAssignedQueueName(String assignedQueueName) {
+    this.assignedQueueName = assignedQueueName;
+  }
+
+  public Set<String> getCandidateQueueNames() {
+    return candidateQueueNames;
+  }
+
+  public void setCandidateQueueNames(Set<String> candidateQueueNames) {
+    this.candidateQueueNames = candidateQueueNames;
+  }
+
   @Override
   public int hashCode() {
     return Objects.hashCode(startTime, getName(), priority);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if ( !(obj instanceof QuerySchedulingInfo)) {
+      return false;
+    }
+
+    QuerySchedulingInfo other = (QuerySchedulingInfo)obj;
+    return queryId.equals(other.queryId);
   }
 }

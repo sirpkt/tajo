@@ -32,20 +32,18 @@ import org.apache.tajo.QueryId;
 import org.apache.tajo.QueryIdFactory;
 import org.apache.tajo.TajoProtos;
 import org.apache.tajo.catalog.TableDesc;
+import org.apache.tajo.conf.TajoConf;
 import org.apache.tajo.engine.query.QueryContext;
 import org.apache.tajo.ipc.QueryCoordinatorProtocol;
 import org.apache.tajo.master.cluster.WorkerConnectionInfo;
-import org.apache.tajo.master.scheduler.SimpleFifoScheduler;
+import org.apache.tajo.master.scheduler.*;
 import org.apache.tajo.plan.logical.LogicalRootNode;
 import org.apache.tajo.querymaster.QueryJobEvent;
 import org.apache.tajo.session.Session;
 import org.apache.tajo.util.history.HistoryReader;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -60,7 +58,7 @@ public class QueryManager extends CompositeService {
 
   private AsyncDispatcher dispatcher;
 
-  private SimpleFifoScheduler scheduler;
+  private Scheduler scheduler;
 
   private final Map<QueryId, QueryInProgress> submittedQueries = Maps.newConcurrentMap();
 
@@ -85,7 +83,7 @@ public class QueryManager extends CompositeService {
 
       this.dispatcher.register(QueryJobEvent.Type.class, new QueryJobManagerEventHandler());
 
-      this.scheduler = new SimpleFifoScheduler(this);
+      this.scheduler = SchedulingAlgorithms.getScheduler((TajoConf)conf, this);
     } catch (Exception e) {
       catchException(null, e);
     }
@@ -112,6 +110,10 @@ public class QueryManager extends CompositeService {
 
   public EventHandler getEventHandler() {
     return dispatcher.getEventHandler();
+  }
+
+  public Scheduler getScheduler() {
+    return scheduler;
   }
 
   public Collection<QueryInProgress> getSubmittedQueries() {
@@ -207,6 +209,10 @@ public class QueryManager extends CompositeService {
     }
 
     return queryInProgress.getQueryInfo();
+  }
+
+  public TajoMaster.MasterContext getMasterContext() {
+    return masterContext;
   }
 
   class QueryJobManagerEventHandler implements EventHandler<QueryJobEvent> {
