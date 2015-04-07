@@ -1039,6 +1039,25 @@ public class ProjectionPushDownRule extends
     return node;
   }
 
+  @Override
+  public LogicalNode visitIntersect(Context context, LogicalPlan plan, LogicalPlan.QueryBlock block, IntersectNode node,
+                                    Stack<LogicalNode> stack) throws PlanningException {
+
+    LogicalPlan.QueryBlock leftBlock = plan.getBlock(node.getLeftChild());
+    LogicalPlan.QueryBlock rightBlock = plan.getBlock(node.getRightChild());
+
+    Context leftContext = new Context(plan, PlannerUtil.toQualifiedFieldNames(context.requiredSet,
+        leftBlock.getName()));
+    Context rightContext = new Context(plan, PlannerUtil.toQualifiedFieldNames(context.requiredSet,
+        rightBlock.getName()));
+
+    stack.push(node);
+    visit(leftContext, plan, leftBlock, leftBlock.getRoot(), new Stack<LogicalNode>());
+    visit(rightContext, plan, rightBlock, rightBlock.getRoot(), new Stack<LogicalNode>());
+    stack.pop();
+    return node;
+  }
+
   public LogicalNode visitScan(Context context, LogicalPlan plan, LogicalPlan.QueryBlock block, ScanNode node,
                           Stack<LogicalNode> stack) throws PlanningException {
 

@@ -23,7 +23,7 @@ package org.apache.tajo.plan.logical;
 
 import org.apache.tajo.plan.PlanString;
 
-public class IntersectNode extends BinaryNode {
+public class IntersectNode extends SetOperationNode {
   public IntersectNode(int pid) {
     super(pid, NodeType.INTERSECT);
   }
@@ -36,9 +36,6 @@ public class IntersectNode extends BinaryNode {
   @Override
   public PlanString getPlanString() {
     PlanString planStr = new PlanString(this);
-    planStr.appendTitle(" (L - " + ((TableSubQueryNode)getLeftChild()).getTableName());
-    planStr.appendTitle(", R - " + ((TableSubQueryNode)getRightChild()).getTableName());
-    planStr.appendTitle(")");
     return planStr;
   }
 }

@@ -1456,9 +1456,43 @@ public class GlobalPlanner {
 
     @Override
     public LogicalNode visitIntersect(GlobalPlanContext context, LogicalPlan plan, LogicalPlan.QueryBlock queryBlock,
-                                      IntersectNode node, Stack<LogicalNode> stack) throws PlanningException {
-      LogicalNode child = super.visitIntersect(context, plan, queryBlock, node, stack);
-      return handleUnaryNode(context, child, node);
+                                      IntersectNode intersectNode, Stack<LogicalNode> stack) throws PlanningException {
+      stack.push(intersectNode);
+      LogicalPlan.QueryBlock leftQueryBlock = plan.getBlock(intersectNode.getLeftChild());
+      LogicalNode leftChild = visit(context, plan, leftQueryBlock, leftQueryBlock.getRoot(), stack);
+
+      LogicalPlan.QueryBlock rightQueryBlock = plan.getBlock(intersectNode.getRightChild());
+      LogicalNode rightChild = visit(context, plan, rightQueryBlock, rightQueryBlock.getRoot(), stack);
+      stack.pop();
+
+      MasterPlan masterPlan = context.getPlan();
+
+      ExecutionBlock leftBlock = context.execBlockMap.get(leftChild.getPID());
+      ExecutionBlock rightBlock = context.execBlockMap.get(rightChild.getPID());
+
+      ExecutionBlock execBlock = context.plan.newExecutionBlock();
+
+      DataChannel leftChannel = new DataChannel(leftBlock, execBlock, HASH_SHUFFLE, 32);
+      List<Column> leftColumns = intersectNode.getLeftChild().getOutSchema().getColumns();
+      leftChannel.setShuffleKeys(leftColumns.toArray(new Column[leftColumns.size()]));
+
+      DataChannel rightChannel = new DataChannel(rightBlock, execBlock, HASH_SHUFFLE, 32);
+      List<Column> rightColumns = intersectNode.getRightChild().getOutSchema().getColumns();
+      rightChannel.setShuffleKeys(rightColumns.toArray(new Column[rightColumns.size()]));
+
+      ScanNode leftScan = buildInputExecutor(masterPlan.getLogicalPlan(), leftChannel);
+      ScanNode rightScan = buildInputExecutor(masterPlan.getLogicalPlan(), rightChannel);
+
+      intersectNode.setLeftChild(leftScan);
+      intersectNode.setRightChild(rightScan);
+      execBlock.setPlan(intersectNode);
+
+      masterPlan.addConnect(leftChannel);
+      masterPlan.addConnect(rightChannel);
+
+      context.execBlockMap.put(intersectNode.getPID(), execBlock);
+
+      return intersectNode;
     }
 
     @Override

@@ -390,12 +390,31 @@ public class LogicalNodeSerializer extends BasicLogicalPlanVisitor<LogicalNodeSe
     int [] childIds = registerGetChildIds(context, node);
 
     PlanProto.UnionNode.Builder unionBuilder = PlanProto.UnionNode.newBuilder();
-    unionBuilder.setAll(true);
+    unionBuilder.setAll(!node.isDistinct());
     unionBuilder.setLeftChildSeq(childIds[0]);
     unionBuilder.setRightChildSeq(childIds[1]);
 
     PlanProto.LogicalNode.Builder nodeBuilder = createNodeBuilder(context, node);
     nodeBuilder.setUnion(unionBuilder);
+    context.treeBuilder.addNodes(nodeBuilder);
+
+    return node;
+  }
+
+  @Override
+  public LogicalNode visitIntersect(SerializeContext context, LogicalPlan plan, LogicalPlan.QueryBlock block, IntersectNode node,
+                                    Stack<LogicalNode> stack) throws PlanningException {
+    super.visitIntersect(context, plan, block, node, stack);
+
+    int [] childIds = registerGetChildIds(context, node);
+
+    PlanProto.IntersectNode.Builder intersectBuilder = PlanProto.IntersectNode.newBuilder();
+    intersectBuilder.setAll(!node.isDistinct());
+    intersectBuilder.setLeftChildSeq(childIds[0]);
+    intersectBuilder.setRightChildSeq(childIds[1]);
+
+    PlanProto.LogicalNode.Builder nodeBuilder = createNodeBuilder(context, node);
+    nodeBuilder.setIntersect(intersectBuilder);
     context.treeBuilder.addNodes(nodeBuilder);
 
     return node;

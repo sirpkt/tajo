@@ -139,6 +139,8 @@ public class SQLAnalyzer extends SQLParserBaseVisitor<Expr> {
       if (ctx.getChild(idx) instanceof TerminalNode) {
         if (((TerminalNode) ctx.getChild(idx)).getSymbol().getType() == UNION) {
           operatorType = OpType.Union;
+        } else if (((TerminalNode) ctx.getChild(idx)).getSymbol().getType() == INTERSECT) {
+          operatorType = OpType.Intersect;
         } else {
           operatorType = OpType.Except;
         }

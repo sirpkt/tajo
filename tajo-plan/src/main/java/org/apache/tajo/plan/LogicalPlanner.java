@@ -1432,7 +1432,7 @@ public class LogicalPlanner extends BaseAlgebraVisitor<LogicalPlanner.PlanContex
     setOpGroupbyNode.setChild(setOpTableSubQueryNode);
     currentBlock.registerNode(setOpGroupbyNode);
 
-    // make projection node which projects all the union columns
+    // make projection node which projects all the set operation columns
     ProjectionNode setOpProjectionNode = context.plan.createNode(ProjectionNode.class);
     setOpProjectionNode.setInSchema(setOpSchema);
     setOpProjectionNode.setTargets(setOpTarget);
@@ -1468,7 +1468,28 @@ public class LogicalPlanner extends BaseAlgebraVisitor<LogicalPlanner.PlanContex
   @Override
   public LogicalNode visitIntersect(PlanContext context, Stack<Expr> stack, SetOperation setOperation)
       throws PlanningException {
-    return buildSetPlan(context, stack, setOperation);
+    IntersectNode intersectNode = (IntersectNode)buildSetPlan(context, stack, setOperation);
+
+    /**
+     *  if the given node is Intersect (Distinct), it adds group by node
+     *    change
+     *     from
+     *           intersect
+     *
+     *       to
+     *           projection
+     *               |
+     *            group by
+     *               |
+     *         table subquery
+     *               |
+     *           intersect
+     */
+    if (intersectNode.isDistinct()) {
+      return insertProjectionGroupbyBeforeSetOperation(context, intersectNode);
+    }
+
+    return intersectNode;
   }
 
   private LogicalNode buildSetPlan(PlanContext context, Stack<Expr> stack, SetOperation setOperation)
@@ -1513,8 +1534,8 @@ public class LogicalPlanner extends BaseAlgebraVisitor<LogicalPlanner.PlanContex
     setOp.setLeftChild(leftChild);
     setOp.setRightChild(rightChild);
 
-    // An union statement can be derived from two query blocks.
-    // For one union statement between both relations, we can ensure that each corresponding data domain of both
+    // An set operation statement can be derived from two query blocks.
+    // For one set operation statement between both relations, we can ensure that each corresponding data domain of both
     // relations are the same. However, if necessary, the schema of left query block will be used as a base schema.
     Target [] leftStrippedTargets = PlannerUtil.stripTarget(
         PlannerUtil.schemaToTargets(leftBlock.getRoot().getOutSchema()));
@@ -1639,14 +1660,19 @@ public class LogicalPlanner extends BaseAlgebraVisitor<LogicalPlanner.PlanContex
     return insertNode;
   }
 
+  private boolean isNodeSetOperation(LogicalNode node) {
+    NodeType type = node.getType();
+    return type == NodeType.UNION || type == NodeType.INTERSECT || type == NodeType.EXCEPT;
+  }
+
   private void buildProjectedInsert(PlanContext context, InsertNode insertNode) {
     Schema tableSchema = insertNode.getTableSchema();
     Schema targetColumns = insertNode.getTargetSchema();
 
     LogicalNode child = insertNode.getChild();
 
-    if (child.getType() == NodeType.UNION) {
-      child = makeProjectionForInsertUnion(context, insertNode);
+    if (isNodeSetOperation(child)) {
+      child = makeProjectionForInsertSetOperation(context, insertNode);
     }
 
     if (child instanceof Projectable) {
@@ -1674,9 +1700,9 @@ public class LogicalPlanner extends BaseAlgebraVisitor<LogicalPlanner.PlanContex
     }
   }
 
-  private ProjectionNode makeProjectionForInsertUnion(PlanContext context, InsertNode insertNode) {
+  private ProjectionNode makeProjectionForInsertSetOperation(PlanContext context, InsertNode insertNode) {
     LogicalNode child = insertNode.getChild();
-    // add (projection - subquery) to RootBlock and create new QueryBlock for UnionNode
+    // add (projection - subquery) to RootBlock and create new QueryBlock for SetOperationNode
     TableSubQueryNode subQueryNode = context.plan.createNode(TableSubQueryNode.class);
     subQueryNode.init(context.queryBlock.getName(), child);
     subQueryNode.setTargets(PlannerUtil.schemaToTargets(subQueryNode.getOutSchema()));
@@ -1689,23 +1715,23 @@ public class LogicalPlanner extends BaseAlgebraVisitor<LogicalPlanner.PlanContex
     context.queryBlock.registerNode(projectionNode);
     context.queryBlock.registerNode(subQueryNode);
 
-    // add child QueryBlock to the UnionNode's QueryBlock
-    UnionNode unionNode = (UnionNode)child;
-    context.queryBlock.unregisterNode(unionNode);
+    // add child QueryBlock to the SetOperationNode's QueryBlock
+    SetOperationNode setOpNode = (SetOperationNode)child;
+    context.queryBlock.unregisterNode(setOpNode);
 
-    QueryBlock unionBlock = context.plan.newQueryBlock();
-    unionBlock.registerNode(unionNode);
-    unionBlock.setRoot(unionNode);
+    QueryBlock setOpBlock = context.plan.newQueryBlock();
+    setOpBlock.registerNode(setOpNode);
+    setOpBlock.setRoot(setOpNode);
 
-    QueryBlock leftBlock = context.plan.getBlock(unionNode.getLeftChild());
-    QueryBlock rightBlock = context.plan.getBlock(unionNode.getRightChild());
+    QueryBlock leftBlock = context.plan.getBlock(setOpNode.getLeftChild());
+    QueryBlock rightBlock = context.plan.getBlock(setOpNode.getRightChild());
 
     context.plan.disconnectBlocks(leftBlock, context.queryBlock);
     context.plan.disconnectBlocks(rightBlock, context.queryBlock);
 
-    context.plan.connectBlocks(unionBlock, context.queryBlock, BlockType.TableSubQuery);
-    context.plan.connectBlocks(leftBlock, unionBlock, BlockType.TableSubQuery);
-    context.plan.connectBlocks(rightBlock, unionBlock, BlockType.TableSubQuery);
+    context.plan.connectBlocks(setOpBlock, context.queryBlock, BlockType.TableSubQuery);
+    context.plan.connectBlocks(leftBlock, setOpBlock, BlockType.TableSubQuery);
+    context.plan.connectBlocks(rightBlock, setOpBlock, BlockType.TableSubQuery);
 
     // set InsertNode's child with ProjectionNode which is created.
     insertNode.setChild(projectionNode);
@@ -1723,8 +1749,8 @@ public class LogicalPlanner extends BaseAlgebraVisitor<LogicalPlanner.PlanContex
 
     LogicalNode child = insertNode.getChild();
 
-    if (child.getType() == NodeType.UNION) {
-      child = makeProjectionForInsertUnion(context, insertNode);
+    if (isNodeSetOperation(child)) {
+      child = makeProjectionForInsertSetOperation(context, insertNode);
     }
 
     Schema childSchema = child.getOutSchema();

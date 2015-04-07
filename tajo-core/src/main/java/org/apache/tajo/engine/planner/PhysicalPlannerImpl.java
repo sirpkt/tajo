@@ -225,6 +225,15 @@ public class PhysicalPlannerImpl implements PhysicalPlanner {
         stack.pop();
         return new UnionExec(ctx, leftExec, rightExec);
 
+      case INTERSECT:
+        IntersectNode intersectNode = (IntersectNode) logicalNode;
+        stack.push(intersectNode);
+        leftExec = createPlanRecursive(ctx, intersectNode.getLeftChild(), stack);
+        rightExec = createPlanRecursive(ctx, intersectNode.getRightChild(), stack);
+        stack.pop();
+
+        return createIntersectPlan(ctx, intersectNode, leftExec, rightExec);
+
       case LIMIT:
         LimitNode limitNode = (LimitNode) logicalNode;
         stack.push(limitNode);
@@ -278,6 +287,27 @@ public class PhysicalPlannerImpl implements PhysicalPlanner {
         FileUtil.humanReadableByteCount(volume, false),
         (inMemoryInnerJoinFlag ? "" : "not ")));
     return inMemoryInnerJoinFlag;
+  }
+
+  public PhysicalExec createIntersectPlan(TaskAttemptContext context, IntersectNode intersectNode, PhysicalExec leftExec,
+                                     PhysicalExec rightExec) throws IOException {
+
+    SortSpec[] sortSpecsLeft = PlannerUtil.schemaToSortSpecs(intersectNode.getLeftChild().getOutSchema());
+    SortSpec[] sortSpecsRight = PlannerUtil.schemaToSortSpecs(intersectNode.getRightChild().getOutSchema());
+
+    SortNode leftSortNode = LogicalPlan.createNodeWithoutPID(SortNode.class);
+    leftSortNode.setSortSpecs(sortSpecsLeft);
+    leftSortNode.setInSchema(intersectNode.getLeftChild().getOutSchema());
+    leftSortNode.setOutSchema(intersectNode.getLeftChild().getOutSchema());
+    ExternalSortExec leftSort = new ExternalSortExec(context, leftSortNode, leftExec);
+
+    SortNode rightSortNode = LogicalPlan.createNodeWithoutPID(SortNode.class);
+    rightSortNode.setSortSpecs(sortSpecsRight);
+    rightSortNode.setInSchema(intersectNode.getRightChild().getOutSchema());
+    rightSortNode.setOutSchema(intersectNode.getRightChild().getOutSchema());
+    ExternalSortExec rightSort = new ExternalSortExec(context, rightSortNode, rightExec);
+
+    return new SortIntersectAllExec(context, leftSort, rightSort);
   }
 
   public PhysicalExec createJoinPlan(TaskAttemptContext context, JoinNode joinNode, PhysicalExec leftExec,

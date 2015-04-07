@@ -123,6 +123,9 @@ public class LogicalNodeDeserializer {
       case UNION:
         current = convertUnion(nodeMap, protoNode);
         break;
+      case INTERSECT:
+        current = convertIntersect(nodeMap, protoNode);
+        break;
       case PARTITIONS_SCAN:
         current = convertPartitionScan(context, protoNode);
         break;
@@ -389,8 +392,21 @@ public class LogicalNodeDeserializer {
     union.setOutSchema(convertSchema(protoNode.getOutSchema()));
     union.setLeftChild(nodeMap.get(unionProto.getLeftChildSeq()));
     union.setRightChild(nodeMap.get(unionProto.getRightChildSeq()));
+    union.setDistinct(!unionProto.getAll());
 
     return union;
+  }
+
+  private static IntersectNode convertIntersect(Map<Integer, LogicalNode> nodeMap, PlanProto.LogicalNode protoNode) {
+    PlanProto.IntersectNode unionProto = protoNode.getIntersect();
+
+    IntersectNode intersect = new IntersectNode(protoNode.getNodeId());
+    intersect.init(nodeMap.get(unionProto.getLeftChildSeq()), nodeMap.get(unionProto.getRightChildSeq()));
+    intersect.setInSchema(convertSchema(protoNode.getInSchema()));
+    intersect.setOutSchema(convertSchema(protoNode.getOutSchema()));
+    intersect.setDistinct(!unionProto.getAll());
+
+    return intersect;
   }
 
   private static ScanNode convertScan(OverridableConf context, PlanProto.LogicalNode protoNode) {

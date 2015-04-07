@@ -36,7 +36,6 @@ import org.apache.tajo.catalog.SchemaUtil;
 import org.apache.tajo.plan.visitor.SimpleAlgebraVisitor;
 import org.apache.tajo.util.TUtil;
 
-import java.sql.SQLSyntaxErrorException;
 import java.util.*;
 
 /**
@@ -341,6 +340,30 @@ public class LogicalPlanPreprocessor extends BaseAlgebraVisitor<LogicalPlanner.P
     unionNode.setDistinct(expr.isDistinct());
 
     return unionNode;
+  }
+
+  @Override
+  public LogicalNode visitIntersect(LogicalPlanner.PlanContext ctx, Stack<Expr> stack, SetOperation expr)
+      throws PlanningException {
+    LogicalPlan.QueryBlock leftBlock = ctx.plan.newQueryBlock();
+    LogicalPlanner.PlanContext leftContext = new LogicalPlanner.PlanContext(ctx, leftBlock);
+    LogicalNode leftChild = visit(leftContext, new Stack<Expr>(), expr.getLeft());
+    leftBlock.setRoot(leftChild);
+    ctx.queryBlock.registerExprWithNode(expr.getLeft(), leftChild);
+
+    LogicalPlan.QueryBlock rightBlock = ctx.plan.newQueryBlock();
+    LogicalPlanner.PlanContext rightContext = new LogicalPlanner.PlanContext(ctx, rightBlock);
+    LogicalNode rightChild = visit(rightContext, new Stack<Expr>(), expr.getRight());
+    rightBlock.setRoot(rightChild);
+    ctx.queryBlock.registerExprWithNode(expr.getRight(), rightChild);
+
+    IntersectNode intersectNode = new IntersectNode(ctx.plan.newPID());
+    intersectNode.init(leftChild, rightChild);
+    intersectNode.setInSchema(leftChild.getOutSchema());
+    intersectNode.setOutSchema(leftChild.getOutSchema());
+    intersectNode.setDistinct(expr.isDistinct());
+
+    return intersectNode;
   }
 
   public LogicalNode visitFilter(LogicalPlanner.PlanContext ctx, Stack<Expr> stack, Selection expr)

@@ -270,8 +270,17 @@ public class BasicLogicalPlanVisitor<CONTEXT, RESULT> implements LogicalPlanVisi
   public RESULT visitExcept(CONTEXT context, LogicalPlan plan, LogicalPlan.QueryBlock block, ExceptNode node,
                             Stack<LogicalNode> stack) throws PlanningException {
     stack.push(node);
-    RESULT result = visit(context, plan, block, node.getLeftChild(), stack);
-    visit(context, plan, block, node.getRightChild(), stack);
+    RESULT result = null;
+    if (plan != null) {
+      LogicalPlan.QueryBlock leftBlock = plan.getBlock(node.getLeftChild());
+      result = visit(context, plan, leftBlock, leftBlock.getRoot(), stack);
+      LogicalPlan.QueryBlock rightBlock = plan.getBlock(node.getRightChild());
+      visit(context, plan, rightBlock, rightBlock.getRoot(), stack);
+    } else {
+      result = visit(context, null, null, node.getLeftChild(), stack);
+      visit(context, null, null, node.getRightChild(), stack);
+    }
+
     stack.pop();
     return result;
   }
@@ -280,8 +289,17 @@ public class BasicLogicalPlanVisitor<CONTEXT, RESULT> implements LogicalPlanVisi
   public RESULT visitIntersect(CONTEXT context, LogicalPlan plan, LogicalPlan.QueryBlock block, IntersectNode node,
                                Stack<LogicalNode> stack) throws PlanningException {
     stack.push(node);
-    RESULT result = visit(context, plan, block, node.getLeftChild(), stack);
-    visit(context, plan, block, node.getRightChild(), stack);
+    RESULT result = null;
+    if (plan != null) {
+      LogicalPlan.QueryBlock leftBlock = plan.getBlock(node.getLeftChild());
+      result = visit(context, plan, leftBlock, leftBlock.getRoot(), stack);
+      LogicalPlan.QueryBlock rightBlock = plan.getBlock(node.getRightChild());
+      visit(context, plan, rightBlock, rightBlock.getRoot(), stack);
+    } else {
+      result = visit(context, null, null, node.getLeftChild(), stack);
+      visit(context, null, null, node.getRightChild(), stack);
+    }
+
     stack.pop();
     return result;
   }
