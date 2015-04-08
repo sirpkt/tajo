@@ -307,7 +307,7 @@ public class PhysicalPlannerImpl implements PhysicalPlanner {
     rightSortNode.setOutSchema(intersectNode.getRightChild().getOutSchema());
     ExternalSortExec rightSort = new ExternalSortExec(context, rightSortNode, rightExec);
 
-    return new SortIntersectAllExec(context, leftSort, rightSort);
+    return new SortIntersectExec(context, leftSort, rightSort, intersectNode.isDistinct());
   }
 
   public PhysicalExec createJoinPlan(TaskAttemptContext context, JoinNode joinNode, PhysicalExec leftExec,

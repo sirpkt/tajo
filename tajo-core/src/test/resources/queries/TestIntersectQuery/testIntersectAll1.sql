@@ -7,7 +7,7 @@ select
 from
   orders
 
-intersect
+intersect ALL
 
 select
   c_custkey as num

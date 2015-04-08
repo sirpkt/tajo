@@ -1468,28 +1468,7 @@ public class LogicalPlanner extends BaseAlgebraVisitor<LogicalPlanner.PlanContex
   @Override
   public LogicalNode visitIntersect(PlanContext context, Stack<Expr> stack, SetOperation setOperation)
       throws PlanningException {
-    IntersectNode intersectNode = (IntersectNode)buildSetPlan(context, stack, setOperation);
-
-    /**
-     *  if the given node is Intersect (Distinct), it adds group by node
-     *    change
-     *     from
-     *           intersect
-     *
-     *       to
-     *           projection
-     *               |
-     *            group by
-     *               |
-     *         table subquery
-     *               |
-     *           intersect
-     */
-    if (intersectNode.isDistinct()) {
-      return insertProjectionGroupbyBeforeSetOperation(context, intersectNode);
-    }
-
-    return intersectNode;
+    return buildSetPlan(context, stack, setOperation);
   }
 
   private LogicalNode buildSetPlan(PlanContext context, Stack<Expr> stack, SetOperation setOperation)

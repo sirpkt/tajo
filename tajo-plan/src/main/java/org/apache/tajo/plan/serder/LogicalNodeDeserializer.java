@@ -398,13 +398,13 @@ public class LogicalNodeDeserializer {
   }
 
   private static IntersectNode convertIntersect(Map<Integer, LogicalNode> nodeMap, PlanProto.LogicalNode protoNode) {
-    PlanProto.IntersectNode unionProto = protoNode.getIntersect();
+    PlanProto.IntersectNode intersectProto = protoNode.getIntersect();
 
     IntersectNode intersect = new IntersectNode(protoNode.getNodeId());
-    intersect.init(nodeMap.get(unionProto.getLeftChildSeq()), nodeMap.get(unionProto.getRightChildSeq()));
+    intersect.init(nodeMap.get(intersectProto.getLeftChildSeq()), nodeMap.get(intersectProto.getRightChildSeq()));
     intersect.setInSchema(convertSchema(protoNode.getInSchema()));
     intersect.setOutSchema(convertSchema(protoNode.getOutSchema()));
-    intersect.setDistinct(!unionProto.getAll());
+    intersect.setDistinct(!intersectProto.getAll());
 
     return intersect;
   }
