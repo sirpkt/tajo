@@ -59,7 +59,7 @@ session_statement
   ;
 
 data_statement
-  : query_expression
+  : query_with_expression
   ;
 
 data_change_statement
@@ -1222,6 +1222,18 @@ window_frame_exclusion
   7.13 <query expression>
 ===============================================================================
 */
+with_clause
+  : WITH with_clause_query_expression
+  ;
+
+with_clause_query_expression
+  : identifier AS LEFT_PAREN query_with_expression RIGHT_PAREN (COMMA with_clause_query_expression)?
+  ;
+
+query_with_expression
+  : with_clause? query_expression
+  ;
+
 query_expression
   : query_expression_body
   ;
