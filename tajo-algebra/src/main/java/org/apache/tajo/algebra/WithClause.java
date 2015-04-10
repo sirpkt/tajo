@@ -22,45 +22,55 @@ import com.google.common.base.Objects;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
+import java.util.ArrayList;
+
 public class WithClause extends Expr {
   @Expose @SerializedName("Query")
-  private String withClause;
+  private ArrayList<Expr> withClauseList;
   @Expose @SerializedName("tableName")
-  private String tableName;
+  private ArrayList<String> tableNameList;
 
-  public WithClause(String withClause, String tableName) {
+  public WithClause(ArrayList<Expr> withClauseList, ArrayList<String> tableNameList) {
     super(OpType.With);
-    this.withClause = new String(withClause);
-    this.tableName = new String(tableName);
+    this.withClauseList = withClauseList;
+    this.tableNameList = tableNameList;
   }
 
-  public String getWithClause() {
-    return this.withClause;
+  public ArrayList<Expr> getWithClause() {
+    return this.withClauseList;
   }
 
-  public void setWithClause(String withClause) {
-    this.withClause=withClause;
+  public void setWithClause(ArrayList<Expr> withClauseList) {
+    this.withClauseList=withClauseList;
   }
 
-  public String getTableName() {
-    return this.tableName;
+  public ArrayList<String > getTableName() {
+    return this.tableNameList;
   }
 
-  public void setTableName(String tableName) {
-    this.tableName=tableName;
+  public void setTableName(ArrayList<String> tableNameList) {
+    this.tableNameList=tableNameList;
+  }
+/*
+  public void addWithClause(Expr expr) {
+    this.withClauseList.add(expr);
   }
 
+  public void addTableName(String tableName) {
+    this.tableNameList.add(tableName);
+  }
+*/
   @Override
   public int hashCode() {
-    return Objects.hashCode(withClause, tableName);
+    return Objects.hashCode(withClauseList, tableNameList);
   }
 
   @Override
   public boolean equalsTo(Expr expr) {
     if (expr instanceof WithClause) {
       WithClause other = (WithClause) expr;
-      return this.withClause.equals(((WithClause) expr).getWithClause())
-          && this.tableName.equals(((WithClause) expr).getTableName());
+      return this.withClauseList.equals(((WithClause) expr).getWithClause())
+          && this.tableNameList.equals(((WithClause) expr).getTableName());
     }
     return false;
   }
@@ -68,8 +78,8 @@ public class WithClause extends Expr {
   @Override
   public Object clone() throws CloneNotSupportedException {
     WithClause with_clause = (WithClause) super.clone();
-    with_clause.withClause = withClause;
-    with_clause.tableName = tableName;
+    with_clause.withClauseList = withClauseList;
+    with_clause.tableNameList = tableNameList;
     return with_clause;
   }
 }

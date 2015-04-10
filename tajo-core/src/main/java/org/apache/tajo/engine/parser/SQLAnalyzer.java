@@ -45,11 +45,12 @@ import static org.apache.tajo.engine.parser.SQLParser.*;
 
 public class SQLAnalyzer extends SQLParserBaseVisitor<Expr> {
   private SQLParser parser;
-
-  private ArrayList<String> withClauseList = new ArrayList<String>();
-  private ArrayList<String> aliasTableName = new ArrayList<String>();
+  private ArrayList<String> withClauseList;
+  private ArrayList<String> tableNameList;
 
   public SQLAnalyzer() {
+    this.withClauseList = new ArrayList<String>();
+    this.tableNameList = new ArrayList<String>();
   }
 
   public Expr parse(String sql) {
@@ -1850,37 +1851,29 @@ public class SQLAnalyzer extends SQLParserBaseVisitor<Expr> {
 
   @Override
   public Expr visitWith_clause_query_expression(SQLParser.With_clause_query_expressionContext ctx) {
+    Expr withExpr = null;
+    tableNameList.add(ctx.identifier().getText());
     withClauseList.add(ctx.query_with_expression().getText());
-    aliasTableName.add(ctx.identifier().getText());
+
     if(checkIfExist(ctx.with_clause_query_expression()))  {
-      Expr expr = visitWith_clause_query_expression(ctx.with_clause_query_expression());
-      return expr;
-    } else {
-      return null;
+      withExpr = visitWith_clause_query_expression(ctx.with_clause_query_expression());
     }
+
+    return withExpr;
   }
 
   @Override
   public Expr visitQuery_with_expression(@NotNull SQLParser.Query_with_expressionContext ctx) {
-    //SimpleTableSubQuery tableSubQuery = new SimpleTableSubQuery(null);
-    Expr expr = null;
+    Expr[] exprs = new Expr[2];
 
-    WithClause tmpWithClause = new WithClause(null, null);
-
-    if(checkIfExist(ctx.with_clause()) && withClauseList.size()==0){
+    if(checkIfExist(ctx.with_clause())){
       visitWith_clause(ctx.with_clause());
+      exprs[0] = new WithClause(withClauseList, tableNameList);
+      exprs[1] = visitQuery_expression(ctx.query_expression());
+      return new ValueListExpr(exprs);
+    } else {
+      return visitQuery_expression(ctx.query_expression());
     }
-    else if(checkIfExist(ctx.with_clause()) && withClauseList.size()!=0)  {
-      for(int i=withClauseList.size();i>=0;i--) {
-        String withClause = withClauseList.get(i);
-        String tableName = aliasTableName.get(i);
-        tmpWithClause.setWithClause(withClause);
-        tmpWithClause.setTableName(tableName);
-        //tableSubQuery.setChild(tmpWithClause);
-      }
-      expr = visitChildren(((SQLParser.Table_subqueryContext)ctx).table_subquery());
-    }
-    return visitQuery_expression(ctx.query_expression());
   }
 
   private Map<String, String> getProperties(SQLParser.Property_listContext ctx) {
