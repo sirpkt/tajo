@@ -1222,6 +1222,7 @@ window_frame_exclusion
   7.13 <query expression>
 ===============================================================================
 */
+
 with_clause
   : WITH with_clause_query_expression
   ;

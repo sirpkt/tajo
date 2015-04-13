@@ -45,11 +45,11 @@ import static org.apache.tajo.engine.parser.SQLParser.*;
 
 public class SQLAnalyzer extends SQLParserBaseVisitor<Expr> {
   private SQLParser parser;
-  private ArrayList<String> withClauseList;
+  private ArrayList<Expr> withClauseList;
   private ArrayList<String> tableNameList;
 
   public SQLAnalyzer() {
-    this.withClauseList = new ArrayList<String>();
+    this.withClauseList = new ArrayList<Expr>();
     this.tableNameList = new ArrayList<String>();
   }
 
@@ -1853,19 +1853,25 @@ public class SQLAnalyzer extends SQLParserBaseVisitor<Expr> {
   public Expr visitWith_clause_query_expression(SQLParser.With_clause_query_expressionContext ctx) {
     Expr withExpr = null;
     tableNameList.add(ctx.identifier().getText());
-    withClauseList.add(ctx.query_with_expression().getText());
-
-    if(checkIfExist(ctx.with_clause_query_expression()))  {
-      withExpr = visitWith_clause_query_expression(ctx.with_clause_query_expression());
+    if(checkIfExist(ctx.query_with_expression().with_clause())) {
+      withClauseList.add(visitQuery_expression(ctx.query_with_expression().query_expression()));
+      visitWith_clause(ctx.query_with_expression().with_clause());
+      if(checkIfExist(ctx.with_clause_query_expression())) {
+        visitWith_clause_query_expression(ctx.with_clause_query_expression());
+      }
+    } else if(!checkIfExist(ctx.query_with_expression().with_clause()) && !checkIfExist(ctx.COMMA())){  //c as ( with d as (select * from lineitem1) select * from lineitem2)
+      withClauseList.add(visitQuery_with_expression(ctx.query_with_expression()));
+      visitQuery_expression(ctx.query_with_expression().query_expression());
+    } else if(checkIfExist(ctx.with_clause_query_expression()) && checkIfExist(ctx.COMMA()))  {  //COMMA
+      withClauseList.add(visitQuery_with_expression(ctx.query_with_expression()));
+      visitWith_clause_query_expression(ctx.with_clause_query_expression());
     }
-
     return withExpr;
   }
 
   @Override
   public Expr visitQuery_with_expression(@NotNull SQLParser.Query_with_expressionContext ctx) {
     Expr[] exprs = new Expr[2];
-
     if(checkIfExist(ctx.with_clause())){
       visitWith_clause(ctx.with_clause());
       exprs[0] = new WithClause(withClauseList, tableNameList);

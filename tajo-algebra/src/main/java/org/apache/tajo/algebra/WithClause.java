@@ -51,15 +51,7 @@ public class WithClause extends Expr {
   public void setTableName(ArrayList<String> tableNameList) {
     this.tableNameList=tableNameList;
   }
-/*
-  public void addWithClause(Expr expr) {
-    this.withClauseList.add(expr);
-  }
 
-  public void addTableName(String tableName) {
-    this.tableNameList.add(tableName);
-  }
-*/
   @Override
   public int hashCode() {
     return Objects.hashCode(withClauseList, tableNameList);
@@ -67,8 +59,7 @@ public class WithClause extends Expr {
 
   @Override
   public boolean equalsTo(Expr expr) {
-    if (expr instanceof WithClause) {
-      WithClause other = (WithClause) expr;
+    if(expr instanceof WithClause) {
       return this.withClauseList.equals(((WithClause) expr).getWithClause())
           && this.tableNameList.equals(((WithClause) expr).getTableName());
     }
