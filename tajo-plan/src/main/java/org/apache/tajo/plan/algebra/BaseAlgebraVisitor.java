@@ -103,6 +103,9 @@ public class BaseAlgebraVisitor<CONTEXT, RESULT> implements AlgebraVisitor<CONTE
     case Explain:
       current = visitExplain(ctx, stack, (Explain) expr);
       break;
+    case With:
+      current = visitWithClause(ctx, stack, (WithClause) expr);
+      break;
 
     case CreateDatabase:
       current = visitCreateDatabase(ctx, stack, (CreateDatabase) expr);
@@ -437,6 +440,17 @@ public class BaseAlgebraVisitor<CONTEXT, RESULT> implements AlgebraVisitor<CONTE
     RESULT child = visit(ctx, stack, expr.getChild());
     stack.pop();
     return child;
+  }
+
+  @Override
+  public RESULT visitWithClause(CONTEXT ctx, Stack<Expr> stack, WithClause expr) throws PlanningException {
+    stack.push(expr);
+    RESULT result = null;
+    for (Expr withExpr : expr.getWithClause()) {
+      result = visit(ctx, stack, withExpr);
+    }
+    stack.pop();
+    return result;
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////
