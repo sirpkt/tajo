@@ -1,16 +1,22 @@
 with a as (
-    select * from lineitem2
+    select * from lineitem
 )
 , b as (
-    select * from lineitem1
+    select * from lineitem
 )
-, c as ( with d as (select * from lineitem8) ,e as (select * from lineitem5) select * from lineitem7)
+, c as ( with d as (select * from lineitem) ,e as (select * from lineitem) select * from lineitem)
 , f as (
-    select * from lineitem9
+    select * from lineitem
 )
 select
   l_returnflag,
   l_linestatus,
   count(*) as count_order
 from
-  lineitem;
+  lineitem
+group by
+  l_returnflag,
+  l_linestatus
+order by
+  l_returnflag,
+  l_linestatus;
