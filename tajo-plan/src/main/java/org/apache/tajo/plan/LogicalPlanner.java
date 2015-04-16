@@ -164,7 +164,6 @@ public class LogicalPlanner extends BaseAlgebraVisitor<LogicalPlanner.PlanContex
   public LogicalNode postHook(PlanContext context, Stack<Expr> stack, Expr expr, LogicalNode current)
       throws PlanningException {
 
-
     // Some generated logical nodes (e.g., implicit aggregation) without exprs will pass NULL as a expr parameter.
     // We should skip them.
     if (expr != null) {
@@ -1302,6 +1301,23 @@ public class LogicalPlanner extends BaseAlgebraVisitor<LogicalPlanner.PlanContex
 
     verifyProjectedFields(block, scanNode);
     return scanNode;
+  }
+
+  @Override
+  public LogicalNode visitWithClause(PlanContext context, Stack<Expr> stack, WithClause withExpr) throws PlanningException {
+    //LogicalNode current = visit(context, stack, withExpr);
+
+    ArrayList<Expr> exprs=withExpr.getWithClause();
+    ArrayList<String> tableName=withExpr.getTableName();
+    Expr nonWithClauseQuery=exprs.get(exprs.size()-1);
+    for(int i=tableName.size()-2;i>=0;i++) {
+      String tmpTableName = tableName.get(i);
+      Expr expr = exprs.get(i);
+      nonWithClauseQuery.toJson().replaceAll(tmpTableName, expr.toString());
+    }
+
+    //return current;
+    return null;
   }
 
   private static LinkedHashSet<Target> createFieldTargetsFromRelation(QueryBlock block, RelationNode relationNode,

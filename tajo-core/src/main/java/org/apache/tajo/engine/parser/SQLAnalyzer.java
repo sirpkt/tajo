@@ -1874,9 +1874,9 @@ public class SQLAnalyzer extends SQLParserBaseVisitor<Expr> {
     Expr[] exprs = new Expr[2];
     if(checkIfExist(ctx.with_clause())){
       visitWith_clause(ctx.with_clause());
-      exprs[0] = new WithClause(withClauseList, tableNameList);
-      exprs[1] = visitQuery_expression(ctx.query_expression());
-      return new ValueListExpr(exprs);
+      tableNameList.add("nonWithClause_Table");
+      withClauseList.add(visitQuery_expression(ctx.query_expression()));
+      return new WithClause(withClauseList, tableNameList);
     } else {
       return visitQuery_expression(ctx.query_expression());
     }
