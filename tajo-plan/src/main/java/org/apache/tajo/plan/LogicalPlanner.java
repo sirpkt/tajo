@@ -158,6 +158,9 @@ public class LogicalPlanner extends BaseAlgebraVisitor<LogicalPlanner.PlanContex
   }
 
   public void preHook(PlanContext context, Stack<Expr> stack, Expr expr) throws PlanningException {
+    if (expr.getType() == OpType.With) {
+      visitWithClause(context, stack, (WithClause) expr);
+    }
     context.queryBlock.updateCurrentNode(expr);
   }
 
@@ -1308,16 +1311,16 @@ public class LogicalPlanner extends BaseAlgebraVisitor<LogicalPlanner.PlanContex
     //LogicalNode current = visit(context, stack, withExpr);
 
     ArrayList<Expr> exprs=withExpr.getWithClause();
-    ArrayList<String> tableName=withExpr.getTableName();
+    //ArrayList<String> tableName=withExpr.getTableName();
     Expr nonWithClauseQuery=exprs.get(exprs.size()-1);
-    for(int i=tableName.size()-2;i>=0;i++) {
-      String tmpTableName = tableName.get(i);
-      Expr expr = exprs.get(i);
-      nonWithClauseQuery.toJson().replaceAll(tmpTableName, expr.toString());
-    }
-
+    //for(int i=tableName.size()-2;i>=0;i--) {
+    //  String tmpTableName = tableName.get(i);
+    //  Expr expr = exprs.get(i);
+      //nonWithClauseQuery.toString();
+      //nonWithClauseQuery.toJson().replaceAll(tmpTableName, expr.toString());
+    //}
     //return current;
-    return null;
+    return visit(context, stack, nonWithClauseQuery);
   }
 
   private static LinkedHashSet<Target> createFieldTargetsFromRelation(QueryBlock block, RelationNode relationNode,

@@ -416,6 +416,7 @@ public class LogicalPlanPreprocessor extends BaseAlgebraVisitor<LogicalPlanner.P
   @Override
   public LogicalNode visitWithClause(LogicalPlanner.PlanContext ctx, Stack<Expr> stack, WithClause exprs)
       throws PlanningException {
+    WithClauseNode withClauseNode = ;
     for(int i=0;i<exprs.getTableName().size();i++) {
       LogicalPlanner.PlanContext newContext;
       // Note: TableSubQuery always has a table name.
@@ -427,10 +428,10 @@ public class LogicalPlanPreprocessor extends BaseAlgebraVisitor<LogicalPlanner.P
 
       // a table subquery should be dealt as a relation.
       TableSubQueryNode node = ctx.plan.createNode(TableSubQueryNode.class);
-      node.init(CatalogUtil.buildFQName(ctx.queryContext.get(SessionVars.CURRENT_DATABASE), exprs.getName()), child);
+      //node.init(CatalogUtil.buildFQName(ctx.queryContext.get(SessionVars.CURRENT_DATABASE), exprs.getName()), child);
       ctx.queryBlock.addRelation(node);
     }
-    return ;
+    return null;
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////
