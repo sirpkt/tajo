@@ -98,6 +98,18 @@ public class PreLogicalPlanVerifier extends BaseAlgebraVisitor<PreLogicalPlanVer
     return expr;
   }
 
+/*
+  @Override
+  public Expr visitWithClause(Context context, Stack<Expr> stack, WithClause expr) throws PlanningException {
+    super.visitWithClause(context, stack, expr);
+
+    for (Expr withExpr : expr.getWithClause()) {
+      visitProjection(context, stack, (Projection) withExpr);
+    }
+    return expr;
+  }
+*/
+
   @Override
   public Expr visitLimit(Context context, Stack<Expr> stack, Limit expr) throws PlanningException {
     stack.push(expr);

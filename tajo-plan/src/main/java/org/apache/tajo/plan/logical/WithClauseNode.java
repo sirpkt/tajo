@@ -16,20 +16,27 @@
  * limitations under the License.
  */
 
+/**
+ * 
+ */
 package org.apache.tajo.plan.logical;
 
-import com.google.common.base.Objects;
 import com.google.gson.annotations.Expose;
-import org.apache.tajo.catalog.Schema;
-import org.apache.tajo.catalog.SchemaUtil;
+import com.google.gson.annotations.SerializedName;
+import org.apache.tajo.algebra.Expr;
 import org.apache.tajo.plan.PlanString;
 import org.apache.tajo.plan.Target;
 import org.apache.tajo.plan.util.PlannerUtil;
+import org.apache.tajo.util.TUtil;
 
-public class WithClauseNode extends RelationNode implements Projectable {
-  @Expose private String tableName;
-  @Expose private LogicalNode subQuery;
-  @Expose private Target [] targets; // unused
+import java.util.ArrayList;
+import java.util.Arrays;
+
+public class WithClauseNode extends LogicalNode implements Projectable {
+  @Expose @SerializedName("Query")
+  private ArrayList<Expr> withClauseList;
+  @Expose @SerializedName("tableName")
+  private ArrayList<String> tableNameList;
 
   public WithClauseNode(int pid) {
     super(pid, NodeType.WITH_CLAUSE);
@@ -37,154 +44,69 @@ public class WithClauseNode extends RelationNode implements Projectable {
 
   @Override
   public int childNum() {
-    return 1;
+    return 0;
   }
 
   @Override
   public LogicalNode getChild(int idx) {
-    return subQuery;
-  }
-
-  public void init(String tableName, LogicalNode subQuery) {
-    this.tableName = tableName;
-    if (subQuery != null) {
-      this.subQuery = subQuery;
-      setOutSchema(SchemaUtil.clone(this.subQuery.getOutSchema()));
-      setInSchema(SchemaUtil.clone(this.subQuery.getOutSchema()));
-      getInSchema().setQualifier(this.tableName);
-      getOutSchema().setQualifier(this.tableName);
-    }
-  }
-
-  @Override
-  public boolean hasAlias() {
-    return false;
-  }
-
-  @Override
-  public String getAlias() {
     return null;
-  }
-
-  public String getTableName() {
-    return tableName;
-  }
-
-  @Override
-  public String getCanonicalName() {
-    return tableName;
-  }
-
-  @Override
-  public Schema getLogicalSchema() {
-    // an output schema can be determined by targets. So, an input schema of
-    // TableSubQueryNode is only eligible for table schema.
-    //
-    // TODO - but, a derived table can have column alias. For that, we should improve here.
-    //
-    // example) select * from (select col1, col2, col3 from t1) view (c1, c2);
-
-    return getInSchema();
-  }
-
-  public void setSubQuery(LogicalNode node) {
-    this.subQuery = node;
-    setInSchema(SchemaUtil.clone(this.subQuery.getOutSchema()));
-    getInSchema().setQualifier(this.tableName);
-    if (hasTargets()) {
-      setOutSchema(PlannerUtil.targetToSchema(targets));
-    } else {
-      setOutSchema(SchemaUtil.clone(this.subQuery.getOutSchema()));
-    }
-  }
-
-  public LogicalNode getSubQuery() {
-    return subQuery;
   }
 
   @Override
   public boolean hasTargets() {
-    return targets != null;
+    return true;
   }
 
   @Override
   public void setTargets(Target[] targets) {
-    this.targets = targets;
-    setOutSchema(PlannerUtil.targetToSchema(targets));
+    this.exprs = targets;
+    this.setOutSchema(PlannerUtil.targetToSchema(targets));
   }
 
   @Override
   public Target[] getTargets() {
-    return targets;
+    return exprs;
   }
 
+  public Target[] getExprs() {
+    return this.exprs;
+  }
+  
   @Override
-  public PlanString getPlanString() {
-    PlanString planStr = new PlanString(this);
-    planStr.appendTitle(" as ").appendTitle(tableName);
-
-    if (hasTargets()) {
-      StringBuilder sb = new StringBuilder("Targets: ");
-      for (int i = 0; i < targets.length; i++) {
-        sb.append(targets[i]);
-        if( i < targets.length - 1) {
-          sb.append(", ");
-        }
-      }
-      planStr.addExplan(sb.toString());
-      if (getOutSchema() != null) {
-        planStr.addExplan("out schema: " + getOutSchema().toString());
-      }
-      if (getInSchema() != null) {
-        planStr.addExplan("in  schema: " + getInSchema().toString());
-      }
-    }
-
-    return planStr;
+  public String toString() {
+    return "EvalExprNode (" + TUtil.arrayToString(exprs) + ")";
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(tableName, subQuery);
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + Arrays.hashCode(exprs);
+    return result;
   }
 
   @Override
-  public boolean equals(Object object) {
-    if (object instanceof WithClauseNode) {
-      WithClauseNode another = (WithClauseNode) object;
-      return tableName.equals(another.tableName) && subQuery.equals(another.subQuery);
+  public boolean equals(Object obj) {
+    if (obj instanceof WithClauseNode) {
+      WithClauseNode other = (WithClauseNode) obj;
+      return TUtil.checkEquals(this.exprs, other.exprs);
+    } else {
+      return false;
     }
-
-    return false;
   }
-
-  @Override
-  public Object clone() throws CloneNotSupportedException {
-    WithClauseNode newTableSubQueryNode = (WithClauseNode) super.clone();
-    newTableSubQueryNode.tableName = tableName;
-    newTableSubQueryNode.subQuery = (LogicalNode) subQuery.clone();
-    if (hasTargets()) {
-      newTableSubQueryNode.targets = new Target[targets.length];
-      for (int i = 0; i < targets.length; i++) {
-        newTableSubQueryNode.targets[i] = (Target) targets[i].clone();
-      }
-    }
-    return newTableSubQueryNode;
-  }
-
+  
   @Override
   public void preOrder(LogicalNodeVisitor visitor) {
-    visitor.visit(this);
-    subQuery.preOrder(visitor);
+    // nothing
   }
 
   @Override
   public void postOrder(LogicalNodeVisitor visitor) {
-    subQuery.preOrder(visitor);
-    visitor.visit(this);
+    // nothing
   }
 
-  public String toString() {
-    return "Inline view (name=" + tableName + ")";
+  @Override
+  public PlanString getPlanString() {
+    return null;
   }
 }

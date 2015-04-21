@@ -158,9 +158,9 @@ public class LogicalPlanner extends BaseAlgebraVisitor<LogicalPlanner.PlanContex
   }
 
   public void preHook(PlanContext context, Stack<Expr> stack, Expr expr) throws PlanningException {
-    if (expr.getType() == OpType.With) {
+    /*if (expr.getType() == OpType.With) {
       visitWithClause(context, stack, (WithClause) expr);
-    }
+    }*/
     context.queryBlock.updateCurrentNode(expr);
   }
 
@@ -1306,6 +1306,7 @@ public class LogicalPlanner extends BaseAlgebraVisitor<LogicalPlanner.PlanContex
     return scanNode;
   }
 
+  /*
   @Override
   public LogicalNode visitWithClause(PlanContext context, Stack<Expr> stack, WithClause withExpr) throws PlanningException {
     //LogicalNode current = visit(context, stack, withExpr);
@@ -1322,6 +1323,7 @@ public class LogicalPlanner extends BaseAlgebraVisitor<LogicalPlanner.PlanContex
     //return current;
     return visit(context, stack, nonWithClauseQuery);
   }
+  */
 
   private static LinkedHashSet<Target> createFieldTargetsFromRelation(QueryBlock block, RelationNode relationNode,
                                                       Set<String> newlyEvaluatedRefNames) {

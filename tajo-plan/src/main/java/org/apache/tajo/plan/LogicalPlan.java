@@ -561,14 +561,14 @@ public class LogicalPlan {
     public void updateCurrentNode(Expr expr) throws PlanningException {
 
       if (expr.getType() != OpType.RelationList) { // skip relation list because it is a virtual expr.
-        if (expr.getType() == OpType.With) {
+        /*if (expr.getType() == OpType.With) {
           return;
-        } else {
+        } else {*/
           this.currentNode = exprToNodeMap.get(ObjectUtils.identityToString(expr));
           if (currentNode == null) {
             throw new PlanningException("Unregistered Algebra Expression: " + expr.getType());
           }
-        }
+        //}
       }
     }
 
