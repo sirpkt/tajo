@@ -21,92 +21,77 @@
  */
 package org.apache.tajo.plan.logical;
 
+import com.google.common.base.Objects;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 import org.apache.tajo.algebra.Expr;
+import org.apache.tajo.catalog.Schema;
 import org.apache.tajo.plan.PlanString;
 import org.apache.tajo.plan.Target;
+import org.apache.tajo.plan.serder.PlanGsonHelper;
 import org.apache.tajo.plan.util.PlannerUtil;
 import org.apache.tajo.util.TUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class WithClauseNode extends LogicalNode implements Projectable {
+public class WithClauseNode extends LogicalNode {
   @Expose @SerializedName("Query")
   private ArrayList<Expr> withClauseList;
   @Expose @SerializedName("tableName")
   private ArrayList<String> tableNameList;
+  @Expose @SerializedName("Node")
+  private ArrayList<LogicalNode> logicalNodeList;
+
 
   public WithClauseNode(int pid) {
     super(pid, NodeType.WITH_CLAUSE);
   }
 
-  @Override
-  public int childNum() {
-    return 0;
-  }
-
-  @Override
-  public LogicalNode getChild(int idx) {
-    return null;
-  }
-
-  @Override
-  public boolean hasTargets() {
-    return true;
-  }
-
-  @Override
-  public void setTargets(Target[] targets) {
-    this.exprs = targets;
-    this.setOutSchema(PlannerUtil.targetToSchema(targets));
-  }
-
-  @Override
-  public Target[] getTargets() {
-    return exprs;
-  }
-
-  public Target[] getExprs() {
-    return this.exprs;
-  }
-  
-  @Override
-  public String toString() {
-    return "EvalExprNode (" + TUtil.arrayToString(exprs) + ")";
-  }
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + Arrays.hashCode(exprs);
-    return result;
+    return Objects.hashCode(withClauseList, tableNameList, logicalNodeList);
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (obj instanceof WithClauseNode) {
-      WithClauseNode other = (WithClauseNode) obj;
-      return TUtil.checkEquals(this.exprs, other.exprs);
-    } else {
-      return false;
+  public boolean equals(Object object) {
+    if(object instanceof WithClauseNode) {
+      return this.withClauseList.equals(((WithClauseNode) object).getWithClause())
+          && this.tableNameList.equals(((WithClauseNode) object).getTableName())
+          && this.tableNameList.equals(((WithClauseNode) object).getTableName());
     }
-  }
-  
-  @Override
-  public void preOrder(LogicalNodeVisitor visitor) {
-    // nothing
+    return false;
   }
 
   @Override
-  public void postOrder(LogicalNodeVisitor visitor) {
-    // nothing
-  }
-
-  @Override
-  public PlanString getPlanString() {
+  public Object clone() throws CloneNotSupportedException {
+    ...
     return null;
+  }
+
+  @Override
+  public String toJson() {
+    return PlanGsonHelper.toJson(this, LogicalNode.class);
+  }
+
+  public int childNum() {
+    return 1;
+  }
+
+  public LogicalNode getChild(int idx) {
+    return logicalNodeList.get(idx);
+  }
+
+  public void preOrder(LogicalNodeVisitor visitor) {
+    return;
+  }
+  public void postOrder(LogicalNodeVisitor visitor) {
+    return;
+  }
+  public PlanString getPlanString() {
+    PlanString planStr = new PlanString(this);
+    planStr.appendappendTitle(" as ").appendTitle(tableName);
+    return planStr;
   }
 }
