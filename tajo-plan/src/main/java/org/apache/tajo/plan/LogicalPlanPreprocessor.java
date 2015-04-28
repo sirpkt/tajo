@@ -44,6 +44,7 @@ import java.util.*;
 public class LogicalPlanPreprocessor extends BaseAlgebraVisitor<LogicalPlanner.PlanContext, LogicalNode> {
   private TypeDeterminant typeDeterminant;
   private ExprAnnotator annotator;
+  private WithClause withClause;
 
   /** Catalog service */
   private CatalogService catalog;
@@ -373,6 +374,24 @@ public class LogicalPlanPreprocessor extends BaseAlgebraVisitor<LogicalPlanner.P
   public LogicalNode visitRelation(LogicalPlanner.PlanContext ctx, Stack<Expr> stack, Relation expr)
       throws PlanningException {
     Relation relation = expr;
+    if(withClause != null) {
+      ArrayList<String> tableName = withClause.getTableName();
+      ArrayList<Expr> withQuery = withClause.getWithClause();
+
+      for (int i = 0; i < tableName.size(); i++) {
+        if (relation.getName().equals(tableName.get(i))) {
+          stack.push(expr);
+          TableSubQueryNode subNode = ctx.plan.createNode(TableSubQueryNode.class);
+          subNode.init(tableName.get(i), visit(ctx, stack, withQuery.get(i)));
+          ctx.queryBlock.setRoot(subNode);
+          //ctx.queryBlock.addRelation(subNode);
+          stack.pop();
+          return subNode;
+          //relation.setAlias(relation.getName());
+          //LogicalNode node = visitTableSubQuery(ctx, stack, new TablePrimarySubQuery(tableName.get(i), withQuery.get(i)));
+        }
+      }
+    }
 
     String actualRelationName;
     if (CatalogUtil.isFQTableName(expr.getName())) {
@@ -394,29 +413,30 @@ public class LogicalPlanPreprocessor extends BaseAlgebraVisitor<LogicalPlanner.P
     return scanNode;
   }
 
-  public LogicalNode visitWithClauseRelation(LogicalPlanner.PlanContext ctx, Stack<Expr> stack, Relation expr)
-      throws PlanningException {
-    Relation relation = expr;
-
-    String actualRelationName;
-    if (CatalogUtil.isFQTableName(expr.getName())) {
-      actualRelationName = relation.getName();
-    } else {
-      actualRelationName =
-          CatalogUtil.buildFQName(ctx.queryContext.get(SessionVars.CURRENT_DATABASE), relation.getName());
+  /*
+  @Override
+  public LogicalNode visitRelationList(LogicalPlanner.PlanContext ctx, Stack<Expr> stack, RelationList expr) throws PlanningException {
+    LogicalNode child = null;
+    if(withClause != null) {
+      ArrayList<String> tableName = withClause.getTableName();
+      ArrayList<Expr> withQuery = withClause.getWithClause();
+      for (Expr e : expr.getRelations()) {
+        stack.push(expr);
+        if (e.getType().equals(OpType.Relation)) {
+          Relation relation = (Relation) e;
+          for (int j = 0; j < tableName.size(); j++) {
+            if (relation.getName().equals(tableName.get(j))) {
+              child = visitTableSubQuery(ctx, stack, new TablePrimarySubQuery(tableName.get(j), withQuery.get(j)));
+            }
+          }
+        }
+        child = visit(ctx, stack, e);
+        stack.pop();
+      }
     }
-
-    TableDesc desc = catalog.getTableDesc(actualRelationName);
-    ScanNode scanNode = ctx.plan.createNode(ScanNode.class);
-    if (relation.hasAlias()) {
-      scanNode.init(desc, relation.getAlias());
-    } else {
-      scanNode.init(desc);
-    }
-    ctx.queryBlock.addRelation(scanNode);
-
-    return scanNode;
+    return child;
   }
+  */
 
   @Override
   public LogicalNode visitTableSubQuery(LogicalPlanner.PlanContext ctx, Stack<Expr> stack, TablePrimarySubQuery expr)
@@ -440,33 +460,14 @@ public class LogicalPlanPreprocessor extends BaseAlgebraVisitor<LogicalPlanner.P
   @Override
   public LogicalNode visitWithClause(LogicalPlanner.PlanContext ctx, Stack<Expr> stack, WithClause exprs)
       throws PlanningException {
+    this.withClause = exprs;
     ArrayList<Expr> expr = exprs.getWithClause();
-    ArrayList<LogicalNode> child = new ArrayList<LogicalNode>(expr.size());
-    //WithClause withClause = ctx.plan.createNode(WithClause.class);
-    //for(int i=exprs.getWithClause().size()-1;i>=0;i--) {'
-    //LogicalPlanner.PlanContext newContext;
-    //QueryBlock queryBlock = ctx.plan.newQueryBlock();
-    //if(expr.get(i).getType().equals(OpType.Aggregation.Relation)) {
-    //  newContext = new LogicalPlanner.PlanContext(ctx, queryBlock);
-    //  for(int j=i;j>=0;j--) {
-    //    if (((Relation) expr.get(i)).getName().equals(exprs.getTableName().get(j))) {
-    //      child.set(j, visit(ctx, stack, expr.get(i)));
-    //      queryBlock.setRoot(child.get(j));
 
-          //child.setChild(tmpNode);
-    //    }
-    //  }
-    //}
-    //child = visit(ctx, stack, expr.get(i));
-    //queryBlock.setRoot(child);
+    stack.push(expr.get(expr.size()-1));
+    LogicalNode child = visit(ctx, stack, expr.get(expr.size()-1));
+    stack.pop();
 
-    for(int i=0;i<expr.size();i++) {
-      stack.push(expr.get(i));
-      child.set(i, visit(ctx, stack, expr.get(i)));
-      stack.pop();
-    }
-
-    return ;
+    return child;
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////
