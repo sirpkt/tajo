@@ -21,6 +21,7 @@ package org.apache.tajo.plan.algebra;
 import org.apache.tajo.algebra.*;
 import org.apache.tajo.plan.PlanningException;
 
+import java.util.ArrayList;
 import java.util.Stack;
 
 public class BaseAlgebraVisitor<CONTEXT, RESULT> implements AlgebraVisitor<CONTEXT, RESULT> {
@@ -102,6 +103,9 @@ public class BaseAlgebraVisitor<CONTEXT, RESULT> implements AlgebraVisitor<CONTE
       break;
     case Explain:
       current = visitExplain(ctx, stack, (Explain) expr);
+      break;
+    case With:
+      current = visitWithClause(ctx, stack, (WithClause) expr);
       break;
 
     case CreateDatabase:
@@ -439,6 +443,20 @@ public class BaseAlgebraVisitor<CONTEXT, RESULT> implements AlgebraVisitor<CONTE
     RESULT child = visit(ctx, stack, expr.getChild());
     stack.pop();
     return child;
+  }
+
+  @Override
+  public RESULT visitWithClause(CONTEXT ctx, Stack<Expr> stack, WithClause expr) throws PlanningException {
+    /*stack.push(expr);
+    RESULT child = null;
+    ArrayList<Expr> exprs = expr.getWithClause();
+    for (int i=0;i<exprs.size();i++) {
+      Expr e = exprs.get(i);
+      child = visit(ctx, stack, e);
+    }
+    stack.pop();
+    return child;*/
+    return null;
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -594,7 +594,7 @@
                 <tajo.test.data.dir>test-data${surefire.forkNumber}</tajo.test.data.dir>
               </systemProperties>
             </configuration>
-          </plugin>        
+          </plugin>
         </plugins>
       </build>
     </profile>

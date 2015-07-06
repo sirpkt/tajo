@@ -45,6 +45,7 @@ public enum OpType {
   ScalarSubQuery(ScalarSubQuery.class),
   Explain(Explain.class),
   Window(Window.class),
+  With(WithClause.class),
 
   // Data definition language
   CreateDatabase(CreateDatabase.class),

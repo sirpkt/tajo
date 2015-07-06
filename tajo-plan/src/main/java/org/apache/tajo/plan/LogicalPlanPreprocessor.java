@@ -44,6 +44,7 @@ import java.util.*;
 public class LogicalPlanPreprocessor extends BaseAlgebraVisitor<LogicalPlanner.PlanContext, LogicalNode> {
   private TypeDeterminant typeDeterminant;
   private ExprAnnotator annotator;
+  private Map<String, TablePrimarySubQuery> withQueryExprMap = new HashMap<String, TablePrimarySubQuery>();
 
   /** Catalog service */
   private CatalogService catalog;
@@ -356,7 +357,22 @@ public class LogicalPlanPreprocessor extends BaseAlgebraVisitor<LogicalPlanner.P
   @Override
   public LogicalNode visitJoin(LogicalPlanner.PlanContext ctx, Stack<Expr> stack, Join expr) throws PlanningException {
     stack.push(expr);
+    Expr e;
+    e = expr.getLeft();
+    if (e.getType().equals(OpType.Relation)) {
+      TablePrimarySubQuery subquery = getWithQuery((Relation)e);
+      if (subquery != null) {
+        expr.setLeft(subquery);
+      }
+    }
     LogicalNode left = visit(ctx, stack, expr.getLeft());
+    e = expr.getRight();
+    if (e.getType().equals(OpType.Relation)) {
+      TablePrimarySubQuery subquery = getWithQuery((Relation)e);
+      if (subquery != null) {
+        expr.setRight(subquery);
+      }
+    }
     LogicalNode right = visit(ctx, stack, expr.getRight());
     stack.pop();
     JoinNode joinNode = ctx.plan.createNode(JoinNode.class);
@@ -398,6 +414,42 @@ public class LogicalPlanPreprocessor extends BaseAlgebraVisitor<LogicalPlanner.P
   }
 
   @Override
+  public LogicalNode visitRelationList(LogicalPlanner.PlanContext ctx, Stack<Expr> stack, RelationList expr) throws PlanningException {
+    LogicalNode child = null;
+    Expr[] relationList = expr.getRelations();
+    int i;
+    for (i = 0; i < relationList.length; i++) {
+      Expr e = relationList[i];
+      stack.push(expr);
+      if (e.getType().equals(OpType.Relation)) {
+        TablePrimarySubQuery subquery = getWithQuery((Relation)e);
+        if (subquery != null) {
+          relationList[i] = subquery;
+          e = subquery;
+        }
+      }
+      child = visit(ctx, stack, e);
+      stack.pop();
+    }
+    return child;
+  }
+
+  private TablePrimarySubQuery getWithQuery(Relation relation) {
+    TablePrimarySubQuery subquery = null;
+    if (withQueryExprMap.containsKey(relation.getName())) {
+      try {
+        subquery = (TablePrimarySubQuery)withQueryExprMap.get(relation.getName()).clone();
+        if (relation.hasAlias()) {
+          subquery.setAlias(relation.getAlias());
+        }
+      } catch (CloneNotSupportedException e1) {
+        e1.printStackTrace();
+      }
+    }
+    return subquery;
+  }
+
+  @Override
   public LogicalNode visitTableSubQuery(LogicalPlanner.PlanContext ctx, Stack<Expr> stack, TablePrimarySubQuery expr)
       throws PlanningException {
 
@@ -411,9 +463,22 @@ public class LogicalPlanPreprocessor extends BaseAlgebraVisitor<LogicalPlanner.P
 
     // a table subquery should be dealt as a relation.
     TableSubQueryNode node = ctx.plan.createNode(TableSubQueryNode.class);
-    node.init(CatalogUtil.buildFQName(ctx.queryContext.get(SessionVars.CURRENT_DATABASE), expr.getName()), child);
+    node.init(CatalogUtil.buildFQName(ctx.queryContext.get(SessionVars.CURRENT_DATABASE), expr.getCanonicalName()), child);
     ctx.queryBlock.addRelation(node);
     return node;
+  }
+
+  @Override
+  public LogicalNode visitWithClause(LogicalPlanner.PlanContext ctx, Stack<Expr> stack, WithClause expr)
+      throws PlanningException {
+    for (Expr withClause: expr.getWithClause()) {
+      TablePrimarySubQuery withClauseExpr = (TablePrimarySubQuery)withClause;
+      withQueryExprMap.put(withClauseExpr.getName(), withClauseExpr);
+    }
+    stack.push(expr);
+    LogicalNode child = visit(ctx, stack, expr.getSubquery());
+    stack.pop();
+    return child;
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////

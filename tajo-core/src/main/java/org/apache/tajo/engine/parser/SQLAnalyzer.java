@@ -28,9 +28,7 @@ import org.apache.tajo.SessionVars;
 import org.apache.tajo.algebra.*;
 import org.apache.tajo.algebra.Aggregation.GroupType;
 import org.apache.tajo.algebra.LiteralValue.LiteralType;
-import org.apache.tajo.catalog.CatalogUtil;
 import org.apache.tajo.engine.parser.SQLParser.*;
-import org.apache.tajo.plan.util.PlannerUtil;
 import org.apache.tajo.storage.StorageConstants;
 import org.apache.tajo.util.StringUtils;
 
@@ -1272,8 +1270,8 @@ public class SQLAnalyzer extends SQLParserBaseVisitor<Expr> {
         createTable.setStorageType(fileType);
       }
 
-      if (checkIfExist(ctx.query_expression())) {
-        Expr subquery = visitQuery_expression(ctx.query_expression());
+      if (checkIfExist(ctx.with_query_expression())) {
+        Expr subquery = visitWith_query_expression(ctx.with_query_expression());
         createTable.setSubQuery(subquery);
       }
     }
@@ -1601,7 +1599,7 @@ public class SQLAnalyzer extends SQLParserBaseVisitor<Expr> {
       }
     }
 
-    insertExpr.setSubQuery(visitQuery_expression(ctx.query_expression()));
+    insertExpr.setSubQuery(visitWith_query_expression(ctx.with_query_expression()));
 
     Preconditions.checkState(insertExpr.hasTableName() || insertExpr.hasLocation(),
         "Either a table name or a location should be given.");
@@ -1856,6 +1854,31 @@ public class SQLAnalyzer extends SQLParserBaseVisitor<Expr> {
     alterTable.setAlterTableOpType(determineAlterTableType(ctx));
 
     return alterTable;
+  }
+
+  @Override
+  public Expr visitWith_query_expression(SQLParser.With_query_expressionContext ctx) {
+    if (checkIfExist(ctx.with_clause())) {
+      WithClause withClause = (WithClause)visitWith_clause(ctx.with_clause());
+      withClause.setSubquery(visitQuery_expression(ctx.query_expression()));
+      return withClause;
+    } else {
+      return visitQuery_expression(ctx.query_expression());
+    }
+  }
+
+  @Override
+  public Expr visitWith_clause(SQLParser.With_clauseContext ctx) {
+    Expr[] targets = new Expr[ctx.with_clause_expression().size()];
+    for (int i = 0; i < targets.length; i++) {
+      targets[i] = visitWith_clause_expression(ctx.with_clause_expression(i));
+    }
+    return new WithClause(targets, null);
+  }
+
+  @Override
+  public Expr visitWith_clause_expression(SQLParser.With_clause_expressionContext ctx) {
+    return new TablePrimarySubQuery(ctx.identifier().getText(), visitQuery_expression(ctx.query_expression()));
   }
 
   private Map<String, String> getProperties(SQLParser.Property_listContext ctx) {

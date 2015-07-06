@@ -59,7 +59,7 @@ session_statement
   ;
 
 data_statement
-  : query_expression
+  : with_query_expression
   ;
 
 data_change_statement
@@ -101,9 +101,9 @@ create_table_statement
   : CREATE EXTERNAL TABLE (if_not_exists)? table_name table_elements (TABLESPACE spacename=identifier)? USING storage_type=identifier
     (param_clause)? (table_partitioning_clauses)? (LOCATION uri=Character_String_Literal)?
   | CREATE TABLE (if_not_exists)? table_name table_elements (TABLESPACE spacename=identifier)? (USING storage_type=identifier)?
-    (param_clause)? (table_partitioning_clauses)? (AS query_expression)?
+    (param_clause)? (table_partitioning_clauses)? (AS with_query_expression)?
   | CREATE TABLE (if_not_exists)? table_name (TABLESPACE spacename=identifier)? (USING storage_type=identifier)?
-    (param_clause)? (table_partitioning_clauses)? AS query_expression
+    (param_clause)? (table_partitioning_clauses)? AS with_query_expression
   | CREATE TABLE (if_not_exists)? table_name LIKE like_table_name=table_name
   ;
 
@@ -1222,6 +1222,19 @@ window_frame_exclusion
   7.13 <query expression>
 ===============================================================================
 */
+
+with_clause
+  : WITH with_clause_expression (COMMA with_clause_expression)*
+  ;
+
+with_clause_expression
+  : identifier AS LEFT_PAREN query_expression RIGHT_PAREN
+  ;
+
+with_query_expression
+  : with_clause? query_expression
+  ;
+
 query_expression
   : query_expression_body
   ;
@@ -1584,8 +1597,8 @@ null_ordering
 */
 
 insert_statement
-  : INSERT (OVERWRITE)? INTO table_name (LEFT_PAREN column_name_list RIGHT_PAREN)? query_expression
-  | INSERT (OVERWRITE)? INTO LOCATION path=Character_String_Literal (USING storage_type=identifier (param_clause)?)? query_expression
+  : INSERT (OVERWRITE)? INTO table_name (LEFT_PAREN column_name_list RIGHT_PAREN)? with_query_expression
+  | INSERT (OVERWRITE)? INTO LOCATION path=Character_String_Literal (USING storage_type=identifier (param_clause)?)? with_query_expression
   ;
 
 /*

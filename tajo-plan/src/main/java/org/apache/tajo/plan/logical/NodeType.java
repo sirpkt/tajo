@@ -22,6 +22,8 @@
 package org.apache.tajo.plan.logical;
 
 
+import org.apache.tajo.algebra.WithClause;
+
 /**
  * This indicates a logical node type.
  */
@@ -43,6 +45,7 @@ public enum NodeType {
   INTERSECT(IntersectNode.class),
   EXCEPT(ExceptNode.class),
   TABLE_SUBQUERY(TableSubQueryNode.class),
+  //WITH_CLAUSE(WithClauseNode.class),
   SCAN(ScanNode.class),
   PARTITIONS_SCAN(PartitionedTableScanNode.class),
   BST_INDEX_SCAN(IndexScanNode.class),
