@@ -16,21 +16,17 @@
  * limitations under the License.
  */
 
-package org.apache.tajo.algebra;
+package org.apache.tajo.plan.joinorder;
 
-public class SimpleTableSubQuery extends UnaryOperator {
+import org.apache.tajo.catalog.Schema;
+import org.apache.tajo.plan.LogicalPlan;
+import org.apache.tajo.plan.logical.LogicalNode;
 
-  public SimpleTableSubQuery(Expr subquery) {
-    super(OpType.SimpleTableSubQuery);
-    setChild(subquery);
-  }
+import java.util.Set;
 
-  public Expr getSubQuery() {
-    return getChild();
-  }
+public interface JoinVertex {
 
-  @Override
-  boolean equalsTo(Expr expr) {
-    return true;
-  }
+  Schema getSchema();
+  Set<RelationVertex> getRelations();
+  LogicalNode buildPlan(LogicalPlan plan, LogicalPlan.QueryBlock block);
 }

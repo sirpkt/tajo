@@ -32,7 +32,6 @@ import org.apache.tajo.plan.logical.*;
 import org.apache.tajo.plan.nameresolver.NameResolver;
 import org.apache.tajo.plan.nameresolver.NameResolvingMode;
 import org.apache.tajo.plan.util.PlannerUtil;
-import org.apache.tajo.catalog.SchemaUtil;
 import org.apache.tajo.plan.visitor.SimpleAlgebraVisitor;
 import org.apache.tajo.util.TUtil;
 
@@ -123,8 +122,10 @@ public class LogicalPlanPreprocessor extends BaseAlgebraVisitor<LogicalPlanner.P
 
       while (iterator.hasNext()) {
         relationOp = iterator.next();
-        schema = relationOp.getLogicalSchema();
-        resolvedColumns.addAll(schema.getRootColumns());
+        if (relationOp.isNameResolveBase()) {
+          schema = relationOp.getLogicalSchema();
+          resolvedColumns.addAll(schema.getRootColumns());
+        }
       }
 
       if (resolvedColumns.size() == 0) {
@@ -344,6 +345,13 @@ public class LogicalPlanPreprocessor extends BaseAlgebraVisitor<LogicalPlanner.P
   public LogicalNode visitFilter(LogicalPlanner.PlanContext ctx, Stack<Expr> stack, Selection expr)
       throws PlanningException {
     stack.push(expr);
+    // Since filter push down will be done later, it is guaranteed that in-subqueries are found at only selection.
+    for (Expr eachQual : PlannerUtil.extractInSubquery(expr.getQual())) {
+      InPredicate inPredicate = (InPredicate) eachQual;
+      stack.push(inPredicate);
+      visit(ctx, stack, inPredicate.getRight());
+      stack.pop();
+    }
     LogicalNode child = visit(ctx, stack, expr.getChild());
     stack.pop();
 
@@ -400,7 +408,6 @@ public class LogicalPlanPreprocessor extends BaseAlgebraVisitor<LogicalPlanner.P
   @Override
   public LogicalNode visitTableSubQuery(LogicalPlanner.PlanContext ctx, Stack<Expr> stack, TablePrimarySubQuery expr)
       throws PlanningException {
-
     LogicalPlanner.PlanContext newContext;
     // Note: TableSubQuery always has a table name.
     // SELECT .... FROM (SELECT ...) TB_NAME <-
@@ -413,6 +420,10 @@ public class LogicalPlanPreprocessor extends BaseAlgebraVisitor<LogicalPlanner.P
     TableSubQueryNode node = ctx.plan.createNode(TableSubQueryNode.class);
     node.init(CatalogUtil.buildFQName(ctx.queryContext.get(SessionVars.CURRENT_DATABASE), expr.getName()), child);
     ctx.queryBlock.addRelation(node);
+    if (stack.peek().getType() == OpType.InPredicate) {
+      // In-subquery and scalar subquery cannot be the base for name resolution.
+      node.setNameResolveBase(false);
+    }
     return node;
   }
 

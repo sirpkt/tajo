@@ -22,12 +22,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.tajo.algebra.ColumnReferenceExpr;
-import org.apache.tajo.algebra.Relation;
 import org.apache.tajo.catalog.CatalogUtil;
 import org.apache.tajo.catalog.Column;
-import org.apache.tajo.catalog.NestedPathUtil;
 import org.apache.tajo.catalog.Schema;
 import org.apache.tajo.catalog.exception.NoSuchColumnException;
+import org.apache.tajo.exception.UnsupportedException;
 import org.apache.tajo.plan.algebra.AmbiguousFieldException;
 import org.apache.tajo.plan.LogicalPlan;
 import org.apache.tajo.plan.PlanningException;
@@ -149,12 +148,30 @@ public abstract class NameResolver {
    * @throws PlanningException
    */
   static Column resolveFromRelsWithinBlock(LogicalPlan plan, LogicalPlan.QueryBlock block,
-                                                  ColumnReferenceExpr columnRef) throws PlanningException {
+                                           ColumnReferenceExpr columnRef) throws PlanningException {
     String qualifier;
     String canonicalName;
 
     if (columnRef.hasQualifier()) {
-      Pair<String, String> normalized = lookupQualifierAndCanonicalName(block, columnRef);
+      Pair<String, String> normalized;
+      try {
+        normalized = lookupQualifierAndCanonicalName(block, columnRef);
+      } catch (NoSuchColumnException nsce) {
+        // is it correlated subquery?
+        // if the search column is not found at the current block, find it at all ancestors of the block.
+        LogicalPlan.QueryBlock current = block;
+        while (!plan.getRootBlock().getName().equals(current.getName())) {
+          LogicalPlan.QueryBlock parentBlock = plan.getParentBlock(current);
+          for (RelationNode relationNode : parentBlock.getRelations()) {
+            if (relationNode.getLogicalSchema().containsByQualifiedName(columnRef.getCanonicalName())) {
+              throw new UnsupportedException("Correlated subquery is not supported yet: " + columnRef.getCanonicalName());
+            }
+          }
+          current = parentBlock;
+        }
+
+        throw nsce;
+      }
       qualifier = normalized.getFirst();
       canonicalName = normalized.getSecond();
 
@@ -224,9 +241,11 @@ public abstract class NameResolver {
     List<Column> candidates = TUtil.newList();
 
     for (RelationNode rel : block.getRelations()) {
-      Column found = rel.getLogicalSchema().getColumn(columnName);
-      if (found != null) {
-        candidates.add(found);
+      if (rel.isNameResolveBase()) {
+        Column found = rel.getLogicalSchema().getColumn(columnName);
+        if (found != null) {
+          candidates.add(found);
+        }
       }
     }
 

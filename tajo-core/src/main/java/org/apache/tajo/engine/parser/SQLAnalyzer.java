@@ -46,10 +46,8 @@ import static org.apache.tajo.engine.parser.SQLParser.*;
 public class SQLAnalyzer extends SQLParserBaseVisitor<Expr> {
   private SQLParser parser;
 
-  public SQLAnalyzer() {
-  }
-
   public Expr parse(String sql) {
+    resetSubqueryPostfix();
     ANTLRInputStream input = new ANTLRInputStream(sql);
     SQLLexer lexer = new SQLLexer(input);
     CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -989,8 +987,25 @@ public class SQLAnalyzer extends SQLParserBaseVisitor<Expr> {
       }
       return new ValueListExpr(exprs);
     } else {
-      return new SimpleTableSubQuery(visitChildren(ctx.table_subquery()));
+      return new TablePrimarySubQuery(getNextSubqueryName(), visitChildren(ctx.table_subquery()));
     }
+  }
+
+  private final static String SUBQUERY_NAME_PREFIX = "SQ_";
+  private static int subqueryNamePostfix = 0;
+
+  private static void resetSubqueryPostfix() {
+    subqueryNamePostfix = 0;
+  }
+
+  /**
+   * Subquery name is required for in-subquery or scalar subquery.
+   * This function generates unique subquery names.
+   *
+   * @return generated subquery name
+   */
+  private static String getNextSubqueryName() {
+    return SUBQUERY_NAME_PREFIX + subqueryNamePostfix++;
   }
 
   @Override
@@ -1049,7 +1064,8 @@ public class SQLAnalyzer extends SQLParserBaseVisitor<Expr> {
 
   @Override
   public ExistsPredicate visitExists_predicate(SQLParser.Exists_predicateContext ctx) {
-    return new ExistsPredicate(new SimpleTableSubQuery(visitTable_subquery(ctx.table_subquery())), ctx.NOT() != null);
+    return new ExistsPredicate(new TablePrimarySubQuery(getNextSubqueryName(),
+        visitTable_subquery(ctx.table_subquery())), ctx.NOT() != null);
   }
 
   @Override
