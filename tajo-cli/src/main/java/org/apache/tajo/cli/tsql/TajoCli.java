@@ -322,12 +322,14 @@ public class TajoCli {
       return script;
     }
 
-    for (String eachParam: params) {
-      String[] tokens = eachParam.split("=");
-      if (tokens.length != 2) {
-        continue;
+    for (String eachParamList: params) {
+      for (String eachParam: eachParamList.split(",")) {
+        String[] tokens = eachParam.trim().split("=");
+        if (tokens.length != 2) {
+          continue;
+        }
+        script = script.replace("${" + tokens[0] + "}", tokens[1]);
       }
-      script = script.replace("${" + tokens[0] + "}", tokens[1]);
     }
 
     return script;

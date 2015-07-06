@@ -85,7 +85,7 @@ public class TestTajoCli {
   }
 
   private static void setVar(TajoCli cli, ConfigKey key, String val) throws Exception {
-    cli.executeMetaCommand("\\set " + key.keyname() +" " + val);
+    cli.executeMetaCommand("\\set " + key.keyname() + " " + val);
   }
 
   private static void assertSessionVar(TajoCli cli, String key, String expectedVal) {
@@ -167,6 +167,16 @@ public class TestTajoCli {
   public void testReplaceParam() throws Exception {
     String sql = "select * from lineitem where l_tax > ${tax} and l_returnflag > '${returnflag}'";
     String[] params = new String[]{"tax=10", "returnflag=A"};
+
+
+    String expected = "select * from lineitem where l_tax > 10 and l_returnflag > 'A'";
+    assertEquals(expected, TajoCli.replaceParam(sql, params));
+  }
+
+  @Test
+  public void testReplaceParam2() throws Exception {
+    String sql = "select * from lineitem where l_tax > ${tax} and l_returnflag > '${returnflag}'";
+    String[] params = new String[]{"tax=10, returnflag=A"};
 
 
     String expected = "select * from lineitem where l_tax > 10 and l_returnflag > 'A'";
