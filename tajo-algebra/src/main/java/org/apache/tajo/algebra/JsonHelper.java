@@ -45,7 +45,6 @@ public class JsonHelper {
     builder.registerTypeAdapter(PartitionMethodDescExpr.class, new PartitionMethodDescExpr.JsonSerDer());
   }
 
-
   public static Gson getInstance() {
     return instance.gson;
   }

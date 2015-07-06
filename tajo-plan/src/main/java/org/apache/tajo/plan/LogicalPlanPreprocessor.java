@@ -377,18 +377,22 @@ public class LogicalPlanPreprocessor extends BaseAlgebraVisitor<LogicalPlanner.P
     if(withClause != null) {
       ArrayList<String> tableName = withClause.getTableName();
       ArrayList<Expr> withQuery = withClause.getWithClause();
+      LogicalNode child = null;
 
       for (int i = 0; i < tableName.size(); i++) {
         if (relation.getName().equals(tableName.get(i))) {
           stack.push(expr);
-          TableSubQueryNode subNode = ctx.plan.createNode(TableSubQueryNode.class);
-          subNode.init(tableName.get(i), visit(ctx, stack, withQuery.get(i)));
-          ctx.queryBlock.setRoot(subNode);
-          //ctx.queryBlock.addRelation(subNode);
+          TablePrimarySubQuery subQuery = new TablePrimarySubQuery(relation.getName(), withQuery.get(i));
+          child = visit(ctx, stack, subQuery);
+          //String str1= withQuery.get(withQuery.size() - 1).toJson();
+          //String str2=relation.toJson();
+          //String str3=subQuery.toJson();
+          String str=withQuery.get(withQuery.size()-1).toJson().replace(relation.toJson(), subQuery.toJson());
+          withQuery.get(withQuery.size()-1).fromJson(str,OpType.Projection);
+          expr=subQuery;
+          withQuery.get(withQuery.size()-1).fromJson(str);
           stack.pop();
-          return subNode;
-          //relation.setAlias(relation.getName());
-          //LogicalNode node = visitTableSubQuery(ctx, stack, new TablePrimarySubQuery(tableName.get(i), withQuery.get(i)));
+          return child;
         }
       }
     }
@@ -466,7 +470,7 @@ public class LogicalPlanPreprocessor extends BaseAlgebraVisitor<LogicalPlanner.P
     stack.push(expr.get(expr.size()-1));
     LogicalNode child = visit(ctx, stack, expr.get(expr.size()-1));
     stack.pop();
-
+    exprs = this.withClause;
     return child;
   }
 

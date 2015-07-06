@@ -101,6 +101,10 @@ public abstract class Expr implements JsonSerializable, Cloneable {
     return JsonHelper.toJson(this);
   }
 
+  public String fromJson(String str) {
+    return JsonHelper.fromJson(str, String.class);
+  }
+
   /**
    * This method provides a visiting way in the post order.
    */
