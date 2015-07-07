@@ -357,22 +357,9 @@ public class LogicalPlanPreprocessor extends BaseAlgebraVisitor<LogicalPlanner.P
   @Override
   public LogicalNode visitJoin(LogicalPlanner.PlanContext ctx, Stack<Expr> stack, Join expr) throws PlanningException {
     stack.push(expr);
-    Expr e;
-    e = expr.getLeft();
-    if (e.getType().equals(OpType.Relation)) {
-      TablePrimarySubQuery subquery = getWithQuery((Relation)e);
-      if (subquery != null) {
-        expr.setLeft(subquery);
-      }
-    }
+    expr.setLeft(relationToWithQueryIfPossible(expr.getLeft()));
     LogicalNode left = visit(ctx, stack, expr.getLeft());
-    e = expr.getRight();
-    if (e.getType().equals(OpType.Relation)) {
-      TablePrimarySubQuery subquery = getWithQuery((Relation)e);
-      if (subquery != null) {
-        expr.setRight(subquery);
-      }
-    }
+    expr.setRight(relationToWithQueryIfPossible(expr.getRight()));
     LogicalNode right = visit(ctx, stack, expr.getRight());
     stack.pop();
     JoinNode joinNode = ctx.plan.createNode(JoinNode.class);
@@ -432,6 +419,16 @@ public class LogicalPlanPreprocessor extends BaseAlgebraVisitor<LogicalPlanner.P
       stack.pop();
     }
     return child;
+  }
+
+  private Expr relationToWithQueryIfPossible(Expr expr) {
+    if (expr.getType().equals(OpType.Relation)) {
+      TablePrimarySubQuery subquery = getWithQuery((Relation)expr);
+      if (subquery != null) {
+        return subquery;
+      }
+    }
+    return expr;
   }
 
   private TablePrimarySubQuery getWithQuery(Relation relation) {

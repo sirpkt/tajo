@@ -447,16 +447,10 @@ public class BaseAlgebraVisitor<CONTEXT, RESULT> implements AlgebraVisitor<CONTE
 
   @Override
   public RESULT visitWithClause(CONTEXT ctx, Stack<Expr> stack, WithClause expr) throws PlanningException {
-    /*stack.push(expr);
-    RESULT child = null;
-    ArrayList<Expr> exprs = expr.getWithClause();
-    for (int i=0;i<exprs.size();i++) {
-      Expr e = exprs.get(i);
-      child = visit(ctx, stack, e);
-    }
+    stack.push(expr);
+    RESULT child = visit(ctx, stack, expr.getSubquery());
     stack.pop();
-    return child;*/
-    return null;
+    return child;
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////

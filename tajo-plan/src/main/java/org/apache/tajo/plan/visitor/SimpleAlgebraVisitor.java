@@ -181,6 +181,7 @@ public abstract class SimpleAlgebraVisitor<CONTEXT, RESULT> extends BaseAlgebraV
     return super.visitWindowFunction(ctx, stack, expr);
   }
 
+  @Override
   public RESULT visitWithClause(CONTEXT ctx, Stack<Expr> stack, WithClause expr) throws PlanningException {
     return super.visitWithClause(ctx, stack, expr);
   }
