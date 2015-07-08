@@ -23,6 +23,7 @@ import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat;
 import org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat;
 import org.apache.hadoop.hive.ql.io.RCFileOutputFormat;
+import org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.tajo.catalog.exception.CatalogException;
@@ -114,7 +115,8 @@ public class HiveCatalogUtil {
       return CatalogProtos.StoreType.SEQUENCEFILE.name();
     } else if(outputFormatClass.equals(RCFileOutputFormat.class.getSimpleName())) {
       return CatalogProtos.StoreType.RCFILE.name();
-    } else if(outputFormatClass.equals(DeprecatedParquetOutputFormat.class.getSimpleName())) {
+    } else if(outputFormatClass.equals(DeprecatedParquetOutputFormat.class.getSimpleName())
+            || outputFormatClass.equals(MapredParquetOutputFormat.class.getSimpleName())) {
       return CatalogProtos.StoreType.PARQUET.name();
     } else {
       throw new CatalogException("Not supported file output format. - file output format:" + fileFormat);
