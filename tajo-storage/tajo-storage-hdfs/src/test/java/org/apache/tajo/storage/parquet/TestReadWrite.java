@@ -29,6 +29,7 @@ import org.apache.tajo.datum.DatumFactory;
 import org.apache.tajo.datum.NullDatum;
 import org.apache.tajo.storage.Tuple;
 import org.apache.tajo.storage.VTuple;
+import org.apache.tajo.util.datetime.TimeMeta;
 import org.junit.Test;
 
 import java.io.File;
@@ -63,6 +64,8 @@ public class TestReadWrite {
     columns.add(new Column("myfloat8", Type.FLOAT8));
     columns.add(new Column("mytext", Type.TEXT));
     columns.add(new Column("myblob", Type.BLOB));
+    columns.add(new Column("mydate", Type.DATE));
+    columns.add(new Column("mytimestamp", Type.TIMESTAMP));
     columns.add(new Column("mynull", Type.NULL_TYPE));
     Column[] columnsArray = new Column[columns.size()];
     columnsArray = columns.toArray(columnsArray);
@@ -75,16 +78,18 @@ public class TestReadWrite {
     Schema schema = createAllTypesSchema();
     Tuple tuple = new VTuple(schema.size());
     tuple.put(0, DatumFactory.createBool(true));
-    tuple.put(1, DatumFactory.createBit((byte)128));
+    tuple.put(1, DatumFactory.createBit((byte) 128));
     tuple.put(2, DatumFactory.createChar('t'));
-    tuple.put(3, DatumFactory.createInt2((short)2048));
+    tuple.put(3, DatumFactory.createInt2((short) 2048));
     tuple.put(4, DatumFactory.createInt4(4096));
     tuple.put(5, DatumFactory.createInt8(8192L));
     tuple.put(6, DatumFactory.createFloat4(0.2f));
     tuple.put(7, DatumFactory.createFloat8(4.1));
     tuple.put(8, DatumFactory.createText(HELLO));
     tuple.put(9, DatumFactory.createBlob(HELLO.getBytes(Charsets.UTF_8)));
-    tuple.put(10, NullDatum.get());
+    tuple.put(10, DatumFactory.createDate(2015, 7, 8));
+    tuple.put(11, DatumFactory.createTimestamp("2015-07-08 12:00:00.012345"));
+    tuple.put(12, NullDatum.get());
 
     TajoParquetWriter writer = new TajoParquetWriter(file, schema);
     writer.write(tuple);
@@ -95,15 +100,22 @@ public class TestReadWrite {
 
     assertNotNull(tuple);
     assertEquals(true, tuple.getBool(0));
-    assertEquals((byte)128, tuple.getByte(1));
+    assertEquals((byte) 128, tuple.getByte(1));
     assertTrue(String.valueOf('t').equals(String.valueOf(tuple.getChar(2))));
-    assertEquals((short)2048, tuple.getInt2(3));
+    assertEquals((short) 2048, tuple.getInt2(3));
     assertEquals(4096, tuple.getInt4(4));
     assertEquals(8192L, tuple.getInt8(5));
     assertEquals(new Float(0.2f), new Float(tuple.getFloat4(6)));
     assertEquals(new Double(4.1), new Double(tuple.getFloat8(7)));
     assertTrue(HELLO.equals(tuple.getText(8)));
     assertArrayEquals(HELLO.getBytes(Charsets.UTF_8), tuple.getBytes(9));
-    assertTrue(tuple.isBlankOrNull(10));
+    TimeMeta tm = new TimeMeta();
+    tm.years = 2015;
+    tm.monthOfYear = 7;
+    tm.dayOfMonth = 8;
+    assertTrue(tm.equals(tuple.getTimeDate(10)));
+    assertTrue(DatumFactory.createDate(2015, 7, 8).asInt4() == tuple.getInt4(10));
+    assertTrue(DatumFactory.createTimestamp("2015-07-08 12:00:00.012345").asInt8() == tuple.getInt8(11));
+    assertTrue(tuple.isBlankOrNull(12));
   }
 }

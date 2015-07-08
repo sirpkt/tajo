@@ -27,6 +27,9 @@ import org.apache.tajo.common.TajoDataTypes.DataType;
 import org.apache.tajo.datum.*;
 import org.apache.tajo.storage.Tuple;
 import org.apache.tajo.storage.VTuple;
+import org.apache.tajo.util.datetime.DateTimeUtil;
+import org.apache.tajo.util.datetime.TimeMeta;
+import parquet.example.data.simple.NanoTime;
 import parquet.io.api.Binary;
 import parquet.io.api.Converter;
 import parquet.io.api.GroupConverter;
@@ -122,6 +125,10 @@ public class TajoRecordConverter extends GroupConverter {
         return new FieldProtobufConverter(parent, dataType);
       case BLOB:
         return new FieldBlobConverter(parent);
+      case DATE:
+        return new FieldDateConverter(parent);
+      case TIMESTAMP:
+        return new FieldTimestampConverter(parent);
       case NULL_TYPE:
         throw new RuntimeException("No converter for NULL_TYPE.");
       default:
@@ -352,6 +359,29 @@ public class TajoRecordConverter extends GroupConverter {
     @Override
     final public void addBinary(Binary value) {
       parent.add(new BlobDatum(ByteBuffer.wrap(value.getBytes())));
+    }
+  }
+
+  static final class FieldDateConverter extends PrimitiveConverter {
+    private final ParentValueContainer parent;
+
+    public FieldDateConverter(ParentValueContainer parent) { this.parent = parent; }
+
+    @Override
+    final public void addInt(int value) { parent.add(DatumFactory.createDate(value)); }
+  }
+
+  static final class FieldTimestampConverter extends PrimitiveConverter {
+    private final ParentValueContainer parent;
+
+    public FieldTimestampConverter(ParentValueContainer parent) { this.parent = parent; }
+
+    @Override
+    final public void addBinary(Binary value) {
+      NanoTime nt = NanoTime.fromBinary(value);
+      TimeMeta tm = DateTimeUtil.j2date(nt.getJulianDay());
+      DateTimeUtil.date2j(nt.getTimeOfDayNanos() / 1000, tm);
+      parent.add(DatumFactory.createTimestamp(DateTimeUtil.toJulianTimestamp(tm)));
     }
   }
 

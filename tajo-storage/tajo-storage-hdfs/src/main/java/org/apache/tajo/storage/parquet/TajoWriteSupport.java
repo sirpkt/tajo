@@ -22,8 +22,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tajo.catalog.Column;
 import org.apache.tajo.catalog.Schema;
 import org.apache.tajo.common.TajoDataTypes;
+import org.apache.tajo.datum.DateDatum;
+import org.apache.tajo.datum.DatumFactory;
+import org.apache.tajo.datum.TimestampDatum;
 import org.apache.tajo.exception.ValueTooLongForTypeCharactersException;
 import org.apache.tajo.storage.Tuple;
+import org.apache.tajo.util.datetime.DateTimeUtil;
+import org.apache.tajo.util.datetime.TimeMeta;
+import parquet.example.data.simple.NanoTime;
 import parquet.hadoop.api.WriteSupport;
 import parquet.io.api.Binary;
 import parquet.io.api.RecordConsumer;
@@ -146,6 +152,14 @@ public class TajoWriteSupport extends WriteSupport<Tuple> {
       case INET6:
         recordConsumer.addBinary(Binary.fromByteArray(tuple.getBytes(index)));
         break;
+      case DATE:
+        recordConsumer.addInteger(tuple.getInt4(index));
+        break;
+      case TIMESTAMP:
+        TimeMeta tm = tuple.getTimeDate(index);
+        NanoTime nanoTime = new NanoTime(DateTimeUtil.date2j(tm.years, tm.monthOfYear, tm.dayOfMonth),
+            DateTimeUtil.toTime(tm) * 1000);
+        recordConsumer.addBinary(nanoTime.toBinary());
       default:
         break;
     }

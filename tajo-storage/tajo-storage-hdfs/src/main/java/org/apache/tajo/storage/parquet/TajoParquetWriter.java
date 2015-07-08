@@ -21,7 +21,7 @@ package org.apache.tajo.storage.parquet;
 import org.apache.hadoop.fs.Path;
 import org.apache.tajo.catalog.Schema;
 import org.apache.tajo.storage.Tuple;
-import org.apache.tajo.storage.thirdparty.parquet.ParquetWriter;
+import parquet.hadoop.ParquetWriter;
 import parquet.hadoop.metadata.CompressionCodecName;
 
 import java.io.IOException;
@@ -100,5 +100,9 @@ public class TajoParquetWriter extends ParquetWriter<Tuple> {
          CompressionCodecName.UNCOMPRESSED,
          DEFAULT_BLOCK_SIZE,
          DEFAULT_PAGE_SIZE);
+  }
+
+  public long getEstimatedWrittenSize() {
+    return 0;
   }
 }
