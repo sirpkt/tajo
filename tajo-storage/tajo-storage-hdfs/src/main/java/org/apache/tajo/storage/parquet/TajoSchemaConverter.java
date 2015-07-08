@@ -21,11 +21,8 @@ package org.apache.tajo.storage.parquet;
 import org.apache.tajo.catalog.Column;
 import org.apache.tajo.catalog.Schema;
 import org.apache.tajo.common.TajoDataTypes;
-import parquet.schema.MessageType;
-import parquet.schema.OriginalType;
-import parquet.schema.PrimitiveType;
+import parquet.schema.*;
 import parquet.schema.PrimitiveType.PrimitiveTypeName;
-import parquet.schema.Type;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -125,7 +122,7 @@ public class TajoSchemaConverter {
 
       @Override
       public Column convertINT96(PrimitiveTypeName primitiveTypeName) {
-        throw new RuntimeException("Converting from INT96 not supported.");
+        return new Column(fieldName, TajoDataTypes.Type.TIMESTAMP);
       }
     });
   }
@@ -163,6 +160,20 @@ public class TajoSchemaConverter {
       case INT4:
         return primitive(column.getSimpleName(),
                          PrimitiveTypeName.INT32);
+      case DATE:
+        return primitive(column.getSimpleName(),
+                PrimitiveTypeName.INT32,
+                OriginalType.DATE);
+
+      case TIMESTAMP:
+        return primitive(column.getSimpleName(),
+                PrimitiveTypeName.INT96);
+
+      case TIME:
+        return primitive(column.getSimpleName(),
+                PrimitiveTypeName.INT64,
+                OriginalType.TIME_MILLIS);
+
       case INT8:
         return primitive(column.getSimpleName(),
                          PrimitiveTypeName.INT64);
