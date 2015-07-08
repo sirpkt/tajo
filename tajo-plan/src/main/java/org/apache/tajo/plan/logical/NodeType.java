@@ -22,6 +22,8 @@
 package org.apache.tajo.plan.logical;
 
 
+import org.apache.tajo.algebra.WithClause;
+
 /**
  * This indicates a logical node type.
  */

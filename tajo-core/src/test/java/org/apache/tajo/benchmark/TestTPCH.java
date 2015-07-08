@@ -60,4 +60,11 @@ public class TestTPCH extends QueryTestCaseBase {
   public void testTPCHQ5() throws Exception {
     runSimpleTests();
   }
+
+  @Test
+  @Option(withExplain = true, withExplainGlobal = true)
+  @SimpleTest
+  public void testQ1With() throws Exception {
+    runSimpleTests();
+  }
 }

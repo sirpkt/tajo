@@ -34,12 +34,14 @@ import org.apache.tajo.plan.util.PlannerUtil;
 import org.apache.tajo.util.TUtil;
 import org.apache.tajo.validation.ConstraintViolation;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
 import java.util.Stack;
 
 public class PreLogicalPlanVerifier extends BaseAlgebraVisitor<PreLogicalPlanVerifier.Context, Expr> {
   private CatalogService catalog;
+  private ArrayList<String> withName = new ArrayList<String>();
 
   public PreLogicalPlanVerifier(CatalogService catalog) {
     this.catalog = catalog;
@@ -141,6 +143,18 @@ public class PreLogicalPlanVerifier extends BaseAlgebraVisitor<PreLogicalPlanVer
   }
 
   @Override
+  public Expr visitWithClause(Context context, Stack<Expr> stack, WithClause expr) throws PlanningException {
+    stack.push(expr);
+    for (Expr withQueryExpr: expr.getWithClause()) {
+      TablePrimarySubQuery subquery = (TablePrimarySubQuery)withQueryExpr;
+      withName.add(subquery.getName());
+    }
+    Expr child = visit(context, stack, expr.getSubquery());
+    stack.pop();
+    return child;
+  }
+
+  @Override
   public Expr visitRelation(Context context, Stack<Expr> stack, Relation expr) throws PlanningException {
     assertRelationExistence(context, expr.getName());
     return expr;
@@ -148,6 +162,10 @@ public class PreLogicalPlanVerifier extends BaseAlgebraVisitor<PreLogicalPlanVer
 
   private boolean assertRelationExistence(Context context, String tableName) {
     String qualifiedName;
+
+    if (withName.contains(tableName)) {
+      return true;
+    }
 
     if (CatalogUtil.isFQTableName(tableName)) {
       qualifiedName = tableName;

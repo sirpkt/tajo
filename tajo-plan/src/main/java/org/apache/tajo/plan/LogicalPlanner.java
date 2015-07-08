@@ -176,7 +176,6 @@ public class LogicalPlanner extends BaseAlgebraVisitor<LogicalPlanner.PlanContex
   public LogicalNode postHook(PlanContext context, Stack<Expr> stack, Expr expr, LogicalNode current)
       throws PlanningException {
 
-
     // Some generated logical nodes (e.g., implicit aggregation) without exprs will pass NULL as a expr parameter.
     // We should skip them.
     if (expr != null) {
@@ -1329,6 +1328,11 @@ public class LogicalPlanner extends BaseAlgebraVisitor<LogicalPlanner.PlanContex
 
     verifyProjectedFields(block, scanNode);
     return scanNode;
+  }
+
+  @Override
+  public LogicalNode visitWithClause(PlanContext context, Stack<Expr> stack, WithClause withExpr) throws PlanningException {
+    return visit(context, stack, withExpr.getSubquery());
   }
 
   private static LinkedHashSet<Target> createFieldTargetsFromRelation(QueryBlock block, RelationNode relationNode,
